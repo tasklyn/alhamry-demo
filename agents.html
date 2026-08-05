@@ -766,10 +766,17 @@ function validateBundle(b){
   });
   if(!Array.isArray(b.products) || !b.products.length) e.push("products مفقود أو فاضي");
   else b.products.forEach((p,i)=>{
-    ["id","name","stage","price","cost","w"].forEach(k=>{ if(p[k]===undefined) e.push(`products[${i}].${k} مفقود`); });
-    if(p.cost) ["buy","intl","duty","vat","salla","gateway","lastmile","retpct"].forEach(k=>{
-      if(typeof p.cost[k]!=="number") e.push(`products[${i}].cost.${k} ليس رقماً — لا تُترك خانة تكلفة بلا رقم موثّق`); });
+    ["id","name","stage","w"].forEach(k=>{ if(p[k]===undefined) e.push(`products[${i}].${k} مفقود`); });
     if(p.stage && !STAGES.some(s=>s.id===p.stage)) e.push(`products[${i}].stage=«${p.stage}» ليس مرحلة معروفة`);
+    // التكلفة والسعر مطلوبان من بوابة الجدوى فصاعداً فقط — المنتج في الرصد ليس له تكلفة بعد،
+    // وطلبها منه يدفع لاختراع أرقام، وهو بالضبط ما تمنعه قواعد الفريق.
+    const idx = STAGES.findIndex(s=>s.id===p.stage);
+    if(idx >= STAGES.findIndex(s=>s.id==="econ")){
+      if(typeof p.price!=="number") e.push(`products[${i}].price ليس رقماً (مطلوب من مرحلة الجدوى)`);
+      if(!p.cost) e.push(`products[${i}].cost مفقود (مطلوب من مرحلة الجدوى)`);
+      else ["buy","intl","duty","vat","salla","gateway","lastmile","retpct"].forEach(k=>{
+        if(typeof p.cost[k]!=="number") e.push(`products[${i}].cost.${k} ليس رقماً — لا تُترك خانة تكلفة بلا رقم موثّق`); });
+    }
   });
   if(!Array.isArray(b.agents) || b.agents.length!==13) e.push("agents يجب أن يكون ١٣ وكيلاً");
   if(!b.quota || typeof b.quota.cap!=="number") e.push("quota.cap مفقود");
@@ -886,6 +893,7 @@ const sarKpi = n => n>=100000 ? AR1.format(n/1000)+'<small> ألف ر.س</small>
 const rangeFactor = r => r===7 ? 0.24 : r===90 ? 2.85 : 1;
 
 function unit(p){
+  if(!p || !p.cost || typeof p.price!=="number") return null; // لم يصل بوابة الجدوى بعد
   const c=p.cost;
   const retCost = (c.buy+c.intl+c.lastmile) * (c.retpct/100);
   const total = c.buy+c.intl+c.duty+c.vat+c.salla+c.gateway+c.lastmile+retCost;
@@ -1069,10 +1077,11 @@ function paintKPIs(){
       : live.map(p=>({p, o:p.orders*f}));
   const orders = scope.reduce((s,x)=>s+x.o,0);
   const sales  = scope.reduce((s,x)=>s+x.o*x.p.price,0);
-  const profit = scope.reduce((s,x)=>s+x.o*unit(x.p).margin,0);
+  const profit = scope.reduce((s,x)=>{ const u=unit(x.p); return s + (u? x.o*u.margin : 0); },0);
   const waits  = vis.filter(p=>p.dec==="wait").length;
   const avgRet = scope.length ? scope.reduce((s,x)=>s+x.p.cost.retpct*x.o,0)/(orders||1) : 0;
-  const cpaMax = vis.length ? vis.reduce((s,p)=>s+unit(p).cpaMax,0)/vis.length : 0;
+  const priced = vis.map(unit).filter(Boolean);
+  const cpaMax = priced.length ? priced.reduce((s,u)=>s+u.cpaMax,0)/priced.length : 0;
 
   const K = [
     {k:"بانتظار قرارك", v:fmt(waits), t:`من ${fmt(vis.length)} منتج في النطاق`, cls:waits?"st-warn":"st-good", ic:waits?"⚠":"✓"},
@@ -1117,13 +1126,14 @@ function paintCards(){
   const vis = visibleProducts();
   $("#cardsnote").textContent = vis.length ? `${fmt(vis.length)} منتج في النطاق الحالي` : "لا منتجات في هذا النطاق";
   $("#cards").innerHTML = vis.map(p=>{
-    const u = unit(p), d = DEC[p.dec];
+    const u = unit(p), d = DEC[p.dec] || DEC.wait;
     return `<div class="card ${state.product===p.id?'sel':''}" data-id="${p.id}">
       <div class="nm">${p.name}</div>
-      <div class="mt"><span>${p.id}</span><span>·</span><span>${p.src}</span><span>·</span><span>و${p.agent}</span></div>
+      <div class="mt"><span>${p.id}</span><span>·</span><span>${p.src||"—"}</span><span>·</span><span>و${fmt(p.agent||1)}</span></div>
       <div class="fx">
         <span class="tag ${d.c}">${d.ic} ${d.t}</span>
-        <span class="mg ${u.margin>0?'st-good':'st-crit'}">هامش ${sar(u.margin)}</span>
+        ${u ? `<span class="mg ${u.margin>0?'st-good':'st-crit'}">هامش ${sar(u.margin)}</span>`
+            : `<span class="mg" style="color:var(--mut)">لا حسبة بعد</span>`}
       </div>
     </div>`;
   }).join("") || `<div style="color:var(--mut);font-size:12.5px">جرّب إزالة أحد الفلاتر بالأعلى.</div>`;
@@ -1136,7 +1146,16 @@ function paintCards(){
 function paintEcon(){
   const p = activeProduct();
   if(!p){ $("#econ").innerHTML = ""; return; }
-  const u = unit(p), L = lines(p), d = DEC[p.dec];
+  const u = unit(p);
+  if(!u){ // بوابة الجدوى لم تُفتح — لا تُعرض حسبة بأرقام مفترضة
+    const st = STAGES[stageIdx(p.stage)];
+    $("#econ").innerHTML = `<div class="phead"><div><h3>🧮 بطاقة القرار — ${p.name}</h3>
+      <div class="note">مخرج محلل الجدوى (و٦)</div></div></div>
+      <div class="locked">🔒 لا حسبة جدوى بعد — «${p.name}» واقف عند <b>${st.icon} ${st.name}</b>.
+      <br>التكلفة والسعر يدخلان من وكيل التوريد (و٥)، ولا يُفترضان هنا.</div>`;
+    return;
+  }
+  const L = lines(p), d = DEC[p.dec] || DEC.wait;
   const cons = u.margin*0.62, mid = u.margin, opt = u.margin*1.34;
   const shades = ["--s1","--s2","--s3","--s4","--s5","--s4","--s3","--s2"];
   $("#econ").innerHTML = `
@@ -1177,7 +1196,8 @@ function paintEcon(){
 /* ---- صوت العميل ---- */
 function paintVOC(){
   const p = activeProduct();
-  const cats = Object.keys(p.comp);
+  const cats = Object.keys(p.comp || {});
+  if(!cats.length){ $("#voc").innerHTML = `<div style="color:var(--mut);font-size:12.5px">لا تواصل عملاء مسجّل على «${p.name}» — لم يُطلق بعد.</div>`; $("#rule3").innerHTML=""; return; }
   const hi = Math.max(...Object.values(p.comp),1);
   $("#voc").innerHTML = cats.map(c=>{
     const v = p.comp[c], over = v>=3;
@@ -1200,7 +1220,7 @@ function paintDecisions(){
   const vis = visibleProducts();
   const today = new Date("2026-08-05");
   $("#decisions").innerHTML = vis.map(p=>{
-    const d = DEC[p.dec], u = unit(p);
+    const d = DEC[p.dec] || DEC.wait;
     const top = Object.entries(p.w).sort((a,b)=>b[1]-a[1])[0];
     const rn = MAP.regions.find(r=>r.code===top[0]);
     const late = p.due && new Date(p.due) < today;
