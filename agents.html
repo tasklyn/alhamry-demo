@@ -9,23 +9,25 @@
 
   :root{
     color-scheme:dark;
-    --page:#0c0d10; --surf:#16181d; --surf2:#1c1f26; --line:#282c35; --line2:#333845;
-    --ink:#ffffff; --ink2:#c3c2b7; --mut:#898781;
-    --gold:#d4a24c; --gold-soft:rgba(212,162,76,.14);
-    /* sequential ramp — one hue (blue), light = high */
-    --s1:#104281; --s2:#1c5cab; --s3:#2a78d6; --s4:#5598e7; --s5:#86b6ef;
-    --empty:#22262e;
+    /* أرض حبرية مائلة للأخضر · تدرّج بلون واحد (بحري) للمقادير · بنفسجي للتحديد
+       · ألوان الحالة محجوزة ولا تُستعمل كسلاسل. كل التدرّجات مرّت على فاحص
+       التباين وعمى الألوان في الوضعين. */
+    --page:#0e1114; --surf:#14181c; --surf2:#1a1f24; --line:#242b31; --line2:#313a42;
+    --ink:#ffffff; --ink2:#c2c9c7; --mut:#8b938f;
+    --gold:#8b79d6; --gold-soft:rgba(139,121,214,.16);
+    --s1:#125a51; --s2:#16776b; --s3:#199c8c; --s4:#4dc2b3; --s5:#8bded2;
+    --empty:#20262b;
     --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
-    --grid:#2c2c2a; --axis:#383835;
+    --grid:#242b31; --axis:#313a42;
   }
   :root[data-theme="light"]{
     color-scheme:light;
-    --page:#f4f5f7; --surf:#ffffff; --surf2:#f7f8fa; --line:#e4e7ee; --line2:#d3d8e2;
-    --ink:#0b0b0b; --ink2:#52514e; --mut:#7c7a75;
-    --gold:#9a6f22; --gold-soft:rgba(184,138,62,.14);
-    --s1:#b7d3f6; --s2:#86b6ef; --s3:#3987e5; --s4:#256abf; --s5:#104281;
-    --empty:#e8ebf1;
-    --grid:#e1e0d9; --axis:#c3c2b7;
+    --page:#eef1f0; --surf:#f9faf9; --surf2:#f2f4f3; --line:#dfe4e2; --line2:#cbd2cf;
+    --ink:#0d1210; --ink2:#4a534f; --mut:#78827d;
+    --gold:#5a49a8; --gold-soft:rgba(90,73,168,.13);
+    --s1:#cfeae4; --s2:#8fd3c8; --s3:#35a897; --s4:#157f72; --s5:#0b544b;
+    --empty:#e2e7e5;
+    --grid:#dfe4e2; --axis:#cbd2cf;
   }
 
   html,body{background:var(--page)}
@@ -72,7 +74,8 @@
   .chip.ghost{background:transparent;border-color:var(--line2);color:var(--mut);font-weight:500}
 
   /* ---------- panels ---------- */
-  .panel{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:16px}
+  /* min-width:0 وإلا فرض أعرض جدول داخل اللوحة عرضَ عمود الشبكة كله وطفح الصفحة */
+  .panel{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0}
   .panel h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
   .panel .note{color:var(--mut);font-size:11.5px;font-weight:400;margin-top:2px}
   .phead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
@@ -94,7 +97,9 @@
     .shell{display:flex;flex-direction:column}
     .main{order:1;padding:14px 13px 34px}
     .rail{order:2;position:static;height:auto;border:0;border-top:1px solid var(--line)}
-    .rail #agents{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+    /* minmax(0,…) وإلا رفض عنصر الشبكة الانكماش دون عرض محتواه فطفح أفقياً */
+    .rail #agents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+    .rail .ag{min-width:0}
     .rail h4{grid-column:1/-1}
     /* وحدات SVG تتقلص مع العرض — نكبّر التسميات حتى تبقى مقروءة */
     .reg-lab{font-size:46px;stroke-width:11px}
@@ -231,7 +236,7 @@
   .rule3 b{color:var(--warn)}
 
   .tblview{display:none}
-  .tblview.on{display:block}
+  .tblview.on{display:block;overflow-x:auto}
   .lnk{background:none;border:0;color:var(--gold);font:inherit;font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0}
 
   /* ---------- الموسمية ---------- */
@@ -324,6 +329,7 @@
             <div class="note" id="mapnote">اضغط منطقة لفلترة كل اللوحة · حدود المناطق من OpenStreetMap</div>
           </div>
           <div class="seg" role="group" aria-label="المؤشر">
+            <button data-metric="pop">السكان</button>
             <button data-metric="orders">الطلبات</button>
             <button data-metric="sales">المبيعات</button>
             <button data-metric="returns">الاسترجاع</button>
@@ -745,11 +751,90 @@ const DOSSIER_DEMO = {
      ٣) اسحب الملف وأفلته على الصفحة
    القالب الكامل يُنزَّل من الزر «نزّل القالب».
    ============================================================ */
+const POP2022 = {
+  RUH:8591748, MAK:8021463, EAS:5125254, MED:2137983, ASR:2024285, JAZ:1404997,
+  QAS:1336179, TAB:886036, HAI:746406, JOU:595822, NAJ:592300, NOR:373577, BAH:339174
+};
 const DEMO_BUNDLE = {
-  meta:{source:"بيانات عرض توضيحي", generated_at:"2026-08-05", currency:"SAR"},
-  regions:REGION_BASE_DEMO, products:PRODUCTS_DEMO, dossier:DOSSIER_DEMO,
+  meta:{source:"مثال كامل (بيانات عرض توضيحي)", generated_at:"2026-08-05", currency:"SAR"},
+  // السكان حقيقية حتى في المثال — المخترع هو مؤشرات المتجر وحدها
+  regions:Object.fromEntries(Object.entries(REGION_BASE_DEMO).map(([c,r])=>[c,Object.assign({pop:POP2022[c]},r)])), products:PRODUCTS_DEMO, dossier:DOSSIER_DEMO,
   agents:AGENTS_DEMO, quota:QUOTA_DEMO, seasons:SEASONS_DEMO
 };
+/* ---- بيانات حقيقية موثّقة ----------------------------------------------
+   السكان: تعداد السعودية ٢٠٢٢ — الهيئة العامة للإحصاء.
+   مجموع الأرقام الثلاثة عشر = ٣٢٬١٧٥٬٢٢٤ وهو الإجمالي الرسمي المعلن بالضبط،
+   وهذا فحص اتساق داخلي على المجموعة كلها لا على رقم منفرد.
+   مؤشرات المتجر (طلبات/مبيعات/استرجاع/تكلفة لكل طلب) = null لأنها تأتي من
+   تصدير متجركم ولا تُقدَّر هنا. الخانة الفاضية مقبولة، الرقم المخترع لا.       */
+const REAL_BUNDLE = {
+  meta:{source:"تعداد السعودية ٢٠٢٢ (الهيئة العامة للإحصاء) + جولة رصد ٥ أغسطس ٢٠٢٦",
+        generated_at:"2026-08-05", currency:"SAR",
+        note:"السكان موثّقة · مؤشرات المتجر فاضية حتى يُرفع تصدير المتجر"},
+  regions: Object.fromEntries(Object.entries(POP2022).map(([c,pop])=>[c,{
+    pop, orders:null, aov:null, ret:null, cpa:null,
+    cities:(REGION_BASE_DEMO[c]||{}).cities||[]
+  }])),
+  // مرشحات جولة الرصد — لا تكلفة ولا سعر: لم تصل بوابة الجدوى، والاختلاق ممنوع
+  products:[
+    {id:"C-001", name:"واقي شمس أمامي للسيارة", stage:"scout", src:"أجنبي", agent:1,
+     w:{RUH:.267,MAK:.249,EAS:.159,MED:.066,ASR:.063,JAZ:.044,QAS:.042,TAB:.028,HAI:.023,JOU:.019,NAJ:.018,NOR:.012,BAH:.010},
+     dec:"wait", why:["قائمة تحريرية فقط — لا إعلان حي","الحد: إعلان نشط بتاريخ بدء"],
+     wait:"دليل نشاط حي من مكتبة الإعلانات", due:"2026-08-12"},
+    {id:"C-002", name:"مستلزمات العودة للمدارس", stage:"eval", src:"محلي", agent:4,
+     w:{RUH:.267,MAK:.249,EAS:.159,MED:.066,ASR:.063,JAZ:.044,QAS:.042,TAB:.028,HAI:.023,JOU:.019,NAJ:.018,NOR:.012,BAH:.010},
+     dec:"wait", why:["الموسم مفتوح الآن","زمن التوريد الخارجي ٢٠–٤٥ يوم يفوته"],
+     wait:"مورد محلي بمخزون جاهز", due:"2026-08-10"},
+    {id:"C-003", name:"جهاز عناية بالبشرة (كهربائي)", stage:"eval", src:"صيني", agent:4,
+     w:{RUH:.30,MAK:.26,EAS:.18,MED:.07,ASR:.06,QAS:.04,JAZ:.03,TAB:.02,HAI:.02,JOU:.01,NAJ:.01},
+     dec:"stop", why:["فئة تحتاج تسجيل GHAD/eCosma","لا يُمرَّر قبل حسم الوضع النظامي"]},
+    {id:"C-004", name:"عطور وبخور وعود", stage:"scout", src:"محلي", agent:2,
+     w:{RUH:.267,MAK:.249,EAS:.159,MED:.066,ASR:.063,JAZ:.044,QAS:.042,TAB:.028,HAI:.023,JOU:.019,NAJ:.018,NOR:.012,BAH:.010},
+     dec:"wait", why:["كثافة منافسة عالية","الكثافة تعني منافسة لا ربحية"],
+     wait:"زاوية أو مورد يميّزه", due:"2026-08-20"}
+  ],
+  dossier:{
+    "C-001":{scout:{agent:1, platform:"قوائم تحريرية + وسم تيك توك", src:"قائمة تحريرية — ليست دليل نشاط حي",
+      date:"2026-08-05", adDays:0, eng:"—", phase:"صاعد",
+      angle:"لم تُبنَ — تُبنى بعد رصد إعلان حي",
+      complaints:["—","—","—"], dupe:{state:"جديد", note:"لا مطابق في السجل"}},
+      comp:{flag:"clear", body:"—", note:"لا كهرباء ولا بطارية — خارج فئات SABER الشائعة مبدئياً، ويُثبَّت بفحص رمز HS على saber.sa",
+        season:null, lead:0, ship:"مناسب", shipNote:"قابل للطي — حجم مضغوط"}},
+    "C-002":{scout:{agent:2, platform:"تقارير سوق", src:"تقرير موثّق", date:"2026-08-05",
+      adDays:0, eng:"ارتفاع الطلب ٨٠٪ (أرقام) · سوق القرطاسية ١.٠٥ مليار دولار", phase:"في الذروة",
+      angle:"لم تُبنَ بعد", complaints:["—","—","—"],
+      dupe:{state:"جديد", note:"موسم سنوي متكرر"}},
+      comp:{flag:"clear", body:"—", note:"الموسم مفتوح الآن — الاستيراد يفوته، والمخرج الوحيد مورد محلي",
+        season:"school", lead:30, ship:"مناسب", shipNote:"—"}},
+    "C-003":{scout:{agent:3, platform:"قوائم اتجاهات", src:"قائمة تحريرية", date:"2026-08-05",
+      adDays:0, eng:"—", phase:"صاعد", angle:"لم تُبنَ بعد",
+      complaints:["—","—","—"], dupe:{state:"جديد", note:"—"}},
+      comp:{flag:"blocked", body:"الهيئة العامة للغذاء والدواء (GHAD/eCosma) + ساسو/سيبر",
+        note:"قيد مزدوج: تسجيل المستحضر إلزامي قبل الاستيراد والتداول، وشهادة مطابقة لكونه جهازاً كهربائياً. لا يُمرَّر قبل حسم الوضع النظامي.",
+        season:null, lead:0, ship:"مناسب", shipNote:"—"}},
+    "C-004":{scout:{agent:2, platform:"تقرير فئات سلة", src:"تقرير سوق", date:"2026-08-05",
+      adDays:0, eng:"قطاع نشط — كثافة عالية", phase:"مشبع", angle:"لم تُبنَ بعد",
+      complaints:["—","—","—"], dupe:{state:"جديد", note:"فئة مزدحمة — تُراجع قبل الدخول"}}}
+  },
+  agents:[
+    {n:1, name:"الإعلانات الأجنبية", grp:"بحث", st:"wait", out:"مكتبة الإعلانات تحتاج دخولاً"},
+    {n:2, name:"الإعلانات المحلية", grp:"بحث", st:"wait", out:"٢ مرشحين بلا سعر منافس"},
+    {n:3, name:"السوق الصيني", grp:"بحث", st:"wait", out:"لا مصنع تم التواصل معه"},
+    {n:4, name:"المقيّم · الامتثال", grp:"بوابات", st:"on", out:"رفض ١ · تعليق ١"},
+    {n:5, name:"التوريد والشحن", grp:"بوابات", st:"wait", out:"لا مورد بعد"},
+    {n:6, name:"محلل الجدوى", grp:"بوابات", st:"wait", out:"لا تكاليف تصل"},
+    {n:7, name:"صانع المحتوى", grp:"تنفيذ", st:"wait", out:"لا منتج معتمد"},
+    {n:8, name:"مولّد الوسائط", grp:"تنفيذ", st:"wait", out:"لا عينة"},
+    {n:9, name:"مراجع المطابقة", grp:"تنفيذ", st:"wait", out:"لا مادة للمراجعة"},
+    {n:10,name:"محلل المتجر", grp:"تنفيذ", st:"wait", out:"لا بيانات متجر"},
+    {n:11,name:"مصمم سلة", grp:"تنفيذ", st:"wait", out:"لا صفحة قيد النشر"},
+    {n:12,name:"صوت العميل", grp:"تشغيل", st:"wait", out:"لا طلبات بعد"},
+    {n:13,name:"المدير", grp:"تشغيل", st:"on", out:"٤ بنود لك"}
+  ],
+  quota:{used:4, cap:12, dupes:0},
+  seasons:SEASONS_DEMO
+};
+
 let REGION_BASE, PRODUCTS, DOSSIER, AGENTS, QUOTA, SEASONS, DATA_MODE, DATA_META;
 
 const REG_CODES = ["RUH","MAK","EAS","MED","QAS","ASR","JAZ","TAB","HAI","NAJ","JOU","BAH","NOR"];
@@ -762,7 +847,12 @@ function validateBundle(b){
   else REG_CODES.forEach(c=>{
     const r=b.regions[c];
     if(!r) e.push(`regions.${c} مفقود`);
-    else ["orders","aov","ret","cpa"].forEach(k=>{ if(typeof r[k]!=="number") e.push(`regions.${c}.${k} ليس رقماً`); });
+    else{
+      if(typeof r.pop!=="number") e.push(`regions.${c}.pop ليس رقماً (السكان مرجع ثابت)`);
+      ["orders","aov","ret","cpa"].forEach(k=>{
+        if(!(typeof r[k]==="number" || r[k]===null || r[k]===undefined))
+          e.push(`regions.${c}.${k} يجب أن يكون رقماً أو null — لا تقدير`); });
+    }
   });
   if(!Array.isArray(b.products) || !b.products.length) e.push("products مفقود أو فاضي");
   else b.products.forEach((p,i)=>{
@@ -813,29 +903,38 @@ function useDemo(){
   $("#dataerr").style.display="none"; paintDataBar(); render();
 }
 function downloadTemplate(){
-  const blob = new Blob([JSON.stringify(DEMO_BUNDLE, null, 2)], {type:"application/json;charset=utf-8"});
+  const blob = new Blob([JSON.stringify(DATA_MODE==="demo"?DEMO_BUNDLE:REAL_BUNDLE, null, 2)], {type:"application/json;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = "alhamry-ops-data.json";
   a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
 }
 function paintDataBar(){
-  const live = DATA_MODE==="live";
-  $("#databar").className = "databar " + (live?"live":"demo");
-  $("#databar").innerHTML =
-    (live
-      ? `<span class="tag t-go">✓ بيانات حقيقية</span>
+  const demo = DATA_MODE==="demo";
+  $("#databar").className = "databar " + (demo?"demo":"live");
+  const head = DATA_MODE==="real"
+      ? `<span class="tag t-go">✓ أرقام حقيقية موثّقة</span>
+         <span>السكان من <b>تعداد السعودية ٢٠٢٢</b> — الهيئة العامة للإحصاء · مؤشرات المتجر فاضية حتى ترفع تصديرك</span>`
+    : DATA_MODE==="live"
+      ? `<span class="tag t-go">✓ بياناتك</span>
          <span>المصدر: <b>${DATA_META.source||"—"}</b>${DATA_META.generated_at?` · محدَّثة ${maybeDate(DATA_META.generated_at)}`:""}
-         · ${fmt(PRODUCTS.length)} منتج · ${fmt(Object.keys(REGION_BASE).length)} منطقة</span>`
-      : `<span class="tag t-wait">⏳ بيانات عرض توضيحي</span>
-         <span>الأرقام هنا للتجربة فقط — ارفع ملف بيانات وكلائك ليشتغل على الحقيقي.</span>`)
-    + `<span class="dbtns">
-         <button class="lnk" id="btnUpload">⬆ ارفع ملف بيانات</button>
-         <button class="lnk" id="btnTpl">⬇ نزّل القالب</button>
-         ${live?`<button class="lnk" id="btnDemo">↺ رجّع للعرض التوضيحي</button>`:""}
-       </span>`;
+         · ${fmt(PRODUCTS.length)} منتج</span>`
+      : `<span class="tag t-wait">⏳ مثال كامل — أرقامه غير حقيقية</span>
+         <span>معروض ليوريك شكل اللوحة وهي ممتلئة. الأرقام مخترعة عدا السكان.</span>`;
+  $("#databar").innerHTML = head + `<span class="dbtns">
+      <button class="lnk" id="btnUpload">⬆ ارفع بياناتك</button>
+      <button class="lnk" id="btnTpl">⬇ نزّل القالب</button>
+      ${demo?`<button class="lnk" id="btnReal">↺ رجّع للحقيقي</button>`
+            :`<button class="lnk" id="btnDemo">👁 شاهد مثالاً كاملاً</button>`}
+    </span>`;
   $("#btnUpload").onclick = ()=> $("#file").click();
   $("#btnTpl").onclick = downloadTemplate;
   const bd = $("#btnDemo"); if(bd) bd.onclick = useDemo;
+  const br = $("#btnReal"); if(br) br.onclick = useReal;
+}
+function useReal(){
+  try{ localStorage.removeItem("alhamry_ops_data"); }catch(e){}
+  applyBundle(JSON.parse(JSON.stringify(REAL_BUNDLE)), "real");
+  $("#dataerr").style.display="none"; paintDataBar(); render();
 }
 function bindData(){
   $("#file").addEventListener("change", ev=>{
@@ -874,7 +973,7 @@ async function boot(){
       if(!validateBundle(b).length){ b.meta = Object.assign({source:"data.json"}, b.meta); applyBundle(b, "live"); return; }
     }
   }catch(e){ /* لا ملف بجانب الصفحة — عادي */ }
-  applyBundle(JSON.parse(JSON.stringify(DEMO_BUNDLE)), "demo");
+  applyBundle(JSON.parse(JSON.stringify(REAL_BUNDLE)), "real");
 }
 
 /* ============================================================
@@ -885,7 +984,7 @@ const AR1 = new Intl.NumberFormat('ar-SA-u-nu-latn',{maximumFractionDigits:1});
 const fmt = n => AR.format(Math.round(n));
 const sar = n => fmt(n)+' ر.س';
 const sarC = n => n>=100000 ? AR1.format(n/1000)+' ألف ر.س' : sar(n); // مختصر للأرقام الكبيرة
-const shortNum = n => n>=1000 ? AR1.format(n/1000)+'k' : fmt(n);      // للتسميات الضيقة
+const shortNum = n => n>=1e6 ? AR1.format(n/1e6)+'م' : n>=1000 ? AR1.format(n/1000)+'ك' : fmt(n); // للتسميات الضيقة
 // في بطاقة KPI الضيقة نُصغّر وحدة العملة بدل قصّ الرقم
 const sarKpi = n => n>=100000 ? AR1.format(n/1000)+'<small> ألف ر.س</small>' : fmt(n)+'<small> ر.س</small>';
 
@@ -914,25 +1013,37 @@ function lines(p){
   ];
 }
 
-const state = {metric:"orders", range:30, region:null, stage:null, product:"P-118", agent:null, hot:null, tbl:false, tab:"scout"};
+const state = {metric:"pop", range:30, region:null, stage:null, product:"P-118", agent:null, hot:null, tbl:false, tab:"scout"};
 
 function activeProduct(){ return PRODUCTS.find(p=>p.id===state.product); }
 
+// null = لا بيانات لهذا المؤشر (لم تُرفع بعد) — تُعرض فاضية ولا تُقدَّر
 function metricFor(code){
   const b=REGION_BASE[code], f=rangeFactor(state.range), p=activeProduct();
   const share = p && p.w[code] ? p.w[code] : 0;
+  const has = k => typeof b[k] === "number";
   switch(state.metric){
-    case "orders":  return p ? (p.orders||120)*f*share : b.orders*f;
-    case "sales":   return p ? (p.orders||120)*f*share*p.price : b.orders*f*b.aov;
-    case "returns": return b.ret + (p ? (p.cost.retpct-6.5)*0.4 : 0);
-    case "cpa":     return b.cpa;
+    case "pop":     return typeof b.pop==="number" ? b.pop : null;
+    case "orders":  return p ? (typeof p.orders==="number" ? p.orders*f*share : null)
+                             : (has("orders") ? b.orders*f : null);
+    case "sales":   return p ? ((typeof p.orders==="number" && typeof p.price==="number") ? p.orders*f*share*p.price : null)
+                             : ((has("orders")&&has("aov")) ? b.orders*f*b.aov : null);
+    case "returns": return has("ret") ? b.ret + (p && p.cost ? (p.cost.retpct-6.5)*0.4 : 0) : null;
+    case "cpa":     return has("cpa") ? b.cpa : null;
   }
 }
-const METRIC_LABEL = {orders:"الطلبات",sales:"المبيعات",returns:"نسبة الاسترجاع",cpa:"التكلفة لكل طلب"};
+const METRIC_LABEL = {pop:"السكان (تعداد ٢٠٢٢)",orders:"الطلبات",sales:"المبيعات",returns:"نسبة الاسترجاع",cpa:"التكلفة لكل طلب"};
+const METRIC_SRC = {
+  pop:"المصدر: تعداد السعودية ٢٠٢٢ — الهيئة العامة للإحصاء · مجموع المناطق ٣٢٬١٧٥٬٢٢٤",
+  orders:"المصدر: تصدير متجرك", sales:"المصدر: تصدير متجرك",
+  returns:"المصدر: تصدير متجرك وتذاكر ما بعد البيع", cpa:"المصدر: منصات الإعلان"
+};
 function metricText(v){
+  if(v===null||v===undefined) return "لا بيانات";
   if(state.metric==="sales") return sar(v);
   if(state.metric==="returns") return AR1.format(v)+'٪';
   if(state.metric==="cpa") return sar(v);
+  if(state.metric==="pop") return fmt(v)+' نسمة';
   return fmt(v)+' طلب';
 }
 
@@ -1019,20 +1130,26 @@ function rampColor(t){ // t: 0..1
 }
 function paintMap(){
   const vals = MAP.regions.map(r=>metricFor(r.code));
-  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const nums = vals.filter(v=>typeof v==="number");
+  const lo = nums.length?Math.min(...nums):0, hi = nums.length?Math.max(...nums):0;
   MAP.regions.forEach((r,i)=>{
     const el = document.getElementById("rg-"+r.code);
-    const t = hi>lo ? (vals[i]-lo)/(hi-lo) : 0.5;
-    el.style.fill = vals[i] <= 0 ? "var(--empty)" : rampColor(t);
+    const v = vals[i];
+    const t = (typeof v==="number" && hi>lo) ? (v-lo)/(hi-lo) : 0.5;
+    el.style.fill = (typeof v!=="number" || v<=0) ? "var(--empty)" : rampColor(t);
     el.classList.toggle("sel", state.region===r.code);
     el.classList.toggle("dim", !!state.region && state.region!==r.code);
     const tx = document.getElementById("rv-"+r.code);
-    tx.textContent = vals[i]>0 ? (state.metric==="returns" ? AR1.format(vals[i])+"٪" : shortNum(vals[i])) : "";
+    tx.textContent = (typeof v==="number" && v>0) ? (state.metric==="returns" ? AR1.format(v)+"٪" : shortNum(v)) : "";
   });
-  $("#legLow").textContent = "منخفض · "+metricText(lo);
-  $("#legHigh").textContent = metricText(hi)+" · مرتفع";
+  const none = !nums.length;
+  $("#legLow").textContent  = none ? "لا بيانات لهذا المؤشر" : "منخفض · "+metricText(lo);
+  $("#legHigh").textContent = none ? "" : metricText(hi)+" · مرتفع";
   const p = activeProduct();
-  $("#mapnote").textContent = p ? `التوزيع لـ«${p.name}» — اضغط منطقة لفلترة كل اللوحة` : "اضغط منطقة لفلترة كل اللوحة";
+  $("#mapnote").innerHTML = (none
+      ? `<span class="st-warn">⚠</span> لا بيانات لـ«${METRIC_LABEL[state.metric]}» — ارفع تصدير متجرك من الشريط الأعلى. `
+      : (p ? `التوزيع لـ«${p.name}» — اضغط منطقة لفلترة كل اللوحة · ` : "اضغط منطقة لفلترة كل اللوحة · "))
+    + `<span style="color:var(--mut)">${METRIC_SRC[state.metric]}</span>`;
   // جدول بديل (وصول)
   $("#maptbl").innerHTML = `<table style="margin-top:10px"><thead><tr><th>المنطقة</th><th>${METRIC_LABEL[state.metric]}</th><th>متوسط الطلب</th><th>الاسترجاع</th></tr></thead><tbody>`+
     MAP.regions.map((r,i)=>`<tr><td><b>${r.ar}</b></td><td>${metricText(vals[i])}</td><td>${sar(REGION_BASE[r.code].aov)}</td><td>${AR1.format(REGION_BASE[r.code].ret)}٪</td></tr>`).join("")+
@@ -1042,7 +1159,10 @@ function paintMap(){
 /* ---- ترتيب المناطق ---- */
 function paintRank(){
   const rows = MAP.regions.map(r=>({code:r.code, ar:r.ar, v:metricFor(r.code)}))
+    .filter(r=>typeof r.v==="number")
     .sort((a,b)=> state.metric==="cpa"||state.metric==="returns" ? a.v-b.v : b.v-a.v);
+  if(!rows.length){ $("#ranknote").textContent = METRIC_LABEL[state.metric];
+    $("#rank").innerHTML = `<div style="color:var(--mut);font-size:12.5px">لا بيانات لهذا المؤشر بعد.</div>`; return; }
   const hi = Math.max(...rows.map(r=>r.v)) || 1;
   $("#ranknote").textContent = (state.metric==="cpa"||state.metric==="returns" ? "الأفضل أولاً · " : "الأعلى أولاً · ")+METRIC_LABEL[state.metric];
   $("#rank").innerHTML = rows.map(r=>`
@@ -1071,7 +1191,8 @@ function paintRankHot(){
 function paintKPIs(){
   const vis = visibleProducts();
   const f = rangeFactor(state.range);
-  const live = PRODUCTS.filter(p=>p.orders>0);
+  const live = PRODUCTS.filter(p=>typeof p.orders==="number" && p.orders>0);
+  const hasStore = live.length > 0;
   const scope = state.region
       ? live.map(p=>({p, o:(p.orders*f)*(p.w[state.region]||0)}))
       : live.map(p=>({p, o:p.orders*f}));
@@ -1086,10 +1207,19 @@ function paintKPIs(){
   const K = [
     {k:"بانتظار قرارك", v:fmt(waits), t:`من ${fmt(vis.length)} منتج في النطاق`, cls:waits?"st-warn":"st-good", ic:waits?"⚠":"✓"},
     {k:"دخل المسار هذا الأسبوع", v:`${fmt(QUOTA.used)}<small> / ${fmt(QUOTA.cap)}</small>`, t:`أُوقف ${fmt(QUOTA.dupes)} مكرر قبل الدخول`, cls:"st-good", ic:"✓"},
-    {k:"الطلبات", v:fmt(orders), t:state.region?`في ${MAP.regions.find(r=>r.code===state.region).ar}`:"كل المناطق"},
-    {k:"المبيعات", v:sarKpi(sales), t:`ربح الوحدات ${sarC(profit)}`, cls:"st-good", ic:"▲"},
-    {k:"نسبة الاسترجاع", v:AR1.format(avgRet||0)+"٪", t:avgRet>8?"فوق الحد ٨٪":"تحت الحد ٨٪", cls:avgRet>8?"st-crit":"st-good", ic:avgRet>8?"✕":"✓"},
-    {k:"متوسط أقصى CPA مسموح", v:sar(cpaMax), t:"معيار إيقاف الاختبار"}
+    hasStore
+      ? {k:"الطلبات", v:fmt(orders), t:state.region?`في ${MAP.regions.find(r=>r.code===state.region).ar}`:"كل المناطق"}
+      : {k:"سكان النطاق", v:shortNum(MAP.regions.filter(r=>!state.region||r.code===state.region)
+            .reduce((s,r)=>s+(REGION_BASE[r.code].pop||0),0)), t:"تعداد ٢٠٢٢ — الهيئة العامة للإحصاء"},
+    hasStore
+      ? {k:"المبيعات", v:sarKpi(sales), t:`ربح الوحدات ${sarC(profit)}`, cls:"st-good", ic:"▲"}
+      : {k:"المبيعات", v:"—", t:"لا تصدير متجر مرفوع", cls:"st-warn", ic:"⚠"},
+    hasStore
+      ? {k:"نسبة الاسترجاع", v:AR1.format(avgRet||0)+"٪", t:avgRet>8?"فوق الحد ٨٪":"تحت الحد ٨٪", cls:avgRet>8?"st-crit":"st-good", ic:avgRet>8?"✕":"✓"}
+      : {k:"نسبة الاسترجاع", v:"—", t:"لا بيانات ما بعد بيع", cls:"st-warn", ic:"⚠"},
+    priced.length
+      ? {k:"متوسط أقصى CPA مسموح", v:sar(cpaMax), t:"معيار إيقاف الاختبار"}
+      : {k:"متوسط أقصى CPA مسموح", v:"—", t:"لا منتج عبر بوابة الجدوى بعد", cls:"st-warn", ic:"⚠"}
   ];
   $("#kpis").innerHTML = K.map(x=>`
     <div class="kpi">
