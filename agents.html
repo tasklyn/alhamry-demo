@@ -214,6 +214,39 @@
   .tblview.on{display:block}
   .lnk{background:none;border:0;color:var(--gold);font:inherit;font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0}
 
+  /* ---------- الموسمية ---------- */
+  .tl{direction:ltr;margin-top:4px}
+  .tl .axis{position:relative;height:20px;border-bottom:1px solid var(--line)}
+  .tl .mo{position:absolute;top:2px;font-size:10.5px;color:var(--mut);transform:translateX(-50%);white-space:nowrap}
+  .tl .band{position:relative;height:26px;margin-top:7px}
+  .tl .sea{position:absolute;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+           font-size:11px;overflow:hidden;white-space:nowrap;padding:0 7px;color:#fff}
+  .tl .now{position:absolute;top:0;bottom:0;width:2px;background:var(--gold);z-index:4}
+  .tl .nowlab{position:absolute;font-size:10.5px;color:var(--gold);transform:translateX(-50%);white-space:nowrap}
+  .tl .prep{position:absolute;height:20px;border-radius:6px;display:flex;align-items:center;padding:0 7px;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden}
+  .seasonmsg{font-size:12.5px;margin-top:10px;padding:9px 11px;border-radius:11px;border:1px solid var(--line);background:var(--surf2);color:var(--ink2)}
+  .seasonmsg b{color:var(--ink)}
+
+  /* ---------- ملف المنتج ---------- */
+  .tabs{display:flex;gap:2px;background:var(--surf2);border:1px solid var(--line);border-radius:11px;padding:3px;flex-wrap:wrap}
+  .tabs button{background:none;border:0;color:var(--ink2);font:inherit;font-size:12.5px;padding:6px 11px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .tabs button:hover{background:var(--line)}
+  .tabs button[aria-selected="true"]{background:var(--gold);color:#1a1300;font-weight:700}
+  .tabs button.lock{opacity:.45}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px;margin-bottom:12px}
+  .kv .c{background:var(--surf2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .kv .c .l{font-size:11.5px;color:var(--mut)}
+  .kv .c .v{font-size:13.5px;font-weight:700;margin-top:2px}
+  .lst{margin:0;padding-inline-start:18px;font-size:12.5px;color:var(--ink2)}
+  .lst li{margin-bottom:4px}
+  .angle{background:var(--surf2);border:1px solid var(--line);border-radius:13px;padding:13px;margin-bottom:9px}
+  .angle .h{font-size:14px;font-weight:800;color:var(--gold);margin:6px 0}
+  .angles{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+  .chk{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;margin-bottom:10px}
+  .chk div{font-size:12.5px;display:flex;align-items:center;gap:7px;background:var(--surf2);border:1px solid var(--line);border-radius:9px;padding:7px 10px}
+  .locked{text-align:center;color:var(--mut);font-size:13px;padding:26px 14px;border:1px dashed var(--line2);border-radius:13px}
+  .locked b{color:var(--ink)}
+
   .cta{margin-top:16px;background:linear-gradient(135deg,#131a2a,#10182a);border:1px solid var(--line);color:#fff;border-radius:16px;padding:20px;text-align:center}
   .cta a{display:inline-block;margin-top:11px;background:var(--gold);color:#1a1300;padding:11px 26px;border-radius:999px;text-decoration:none;font-weight:800}
   .foot{text-align:center;color:var(--mut);font-size:11.5px;padding:16px 0 0}
@@ -331,6 +364,26 @@
         <div class="voc" id="voc"></div>
         <div class="rule3" id="rule3"></div>
       </div>
+    </div>
+
+    <!-- الموسمية وزمن التجهيز -->
+    <div class="panel" style="margin-bottom:14px">
+      <div class="phead"><div>
+        <h3>📅 نافذة الموسم مقابل زمن التجهيز</h3>
+        <div class="note">بوابة المقيّم (و٤): المنتج الموسمي يُرفض إذا كان التجهيز يتجاوز بداية الموسم · النوافذ تقريبية للعرض</div>
+      </div></div>
+      <div class="tl" id="tl"></div>
+      <div class="seasonmsg" id="seasonmsg"></div>
+    </div>
+
+    <!-- ملف المنتج -->
+    <div class="panel" style="margin-bottom:14px">
+      <div class="phead">
+        <div><h3>🗂️ ملف المنتج — مخرجات الوكلاء</h3>
+             <div class="note" id="dossnote">المرحلة التي لم تُفتح بوابتها تبقى فاضية عمداً — لا تخمين</div></div>
+        <div class="tabs" id="dosstabs" role="tablist"></div>
+      </div>
+      <div id="dossbody"></div>
     </div>
 
     <!-- قرارات المدير -->
@@ -475,6 +528,192 @@ const PRODUCTS = [
 
 const QUOTA = {used:9, cap:12, dupes:5};
 
+/* ---- المواسم السعودية (نوافذ تقريبية للعرض — تُضبط من التقويم الرسمي) ---- */
+const SEASONS = [
+  {id:"school", name:"العودة للمدارس", from:"2026-08-16", to:"2026-09-20"},
+  {id:"nat",    name:"اليوم الوطني",   from:"2026-09-10", to:"2026-09-25"},
+  {id:"wf",     name:"الجمعة البيضاء", from:"2026-11-20", to:"2026-11-30"},
+  {id:"winter", name:"موسم الشتاء",     from:"2026-12-01", to:"2027-02-15"}
+];
+const TODAY = new Date("2026-08-05");
+
+/* ============================================================
+   مخرجات الوكلاء لكل منتج — تُملأ فقط للمراحل التي عبرها المنتج.
+   المرحلة التي لم تُفتح بوابتها تبقى فاضية عمداً (لا تخمين).
+   ============================================================ */
+const DOSSIER = {
+"P-118":{
+  scout:{agent:1, platform:"مكتبة إعلانات ميتا", src:"عرض إعلان نشط", date:"2026-07-12",
+    adDays:64, eng:"١٨ ألف تفاعل · ٤ إطلاقات", phase:"صاعد", angle:"مشكلة/حل — رائحة السيارة بعد الوقوف بالشمس",
+    complaints:["البطارية تخلص بسرعة","الرائحة قوية في البداية","الحامل ما يثبت في كل الفتحات"],
+    dupe:{state:"جديد", note:"لا مطابق في السجل"}},
+  comp:{flag:"clear", body:"—", note:"غير مصنّف ضمن فئات التسجيل الإلزامي", season:null, lead:21,
+    ship:"مناسب", shipNote:"٢٤٠ غم · بلا بطارية ليثيوم منفصلة"},
+  sup:{hs:"3307.49", dutyPct:5, docs:"متوفرة", sample:{state:"وصلت", date:"2026-07-28"},
+    ship:{track:"SF7719340221", eta:"2026-08-11"},
+    list:[{n:"Ningbo Aroma Ltd", r:4.8, y:9, moq:200, p:14.8, t:"عرض مباشر", sel:1},
+          {n:"Yiwu Carline",     r:4.5, y:5, moq:100, p:16.2, t:"سعر منشور"},
+          {n:"Shenzhen FreshGo", r:4.2, y:3, moq:500, p:13.4, t:"عرض مباشر"}]},
+  cont:{angles:[
+    {n:"الوقفة بالشمس", t:"مشكلة/حل", hook:"تفتح سيارتك الساعة ٣ العصر… وتندم.",
+     scene:"لقطة داخل سيارة واقفة بالشمس ثم فتح الباب وتشغيل الجهاز", dur:"٢٢ ثانية", pf:"تيك توك",
+     obj:"«الرائحة قوية في البداية» — نعالجها بإظهار مؤشر الشدة"},
+    {n:"قبل وبعد الضيوف", t:"قبل-بعد", hook:"قبل ما تركّبهم… سو هذا.",
+     scene:"لقطتان متتاليتان لنفس المقصورة بفارق ٣٠ ثانية", dur:"١٧ ثانية", pf:"سناب",
+     obj:"«ما يثبت في كل الفتحات» — نظهر التركيب على ٣ أنواع فتحات"}]},
+  med:{match:{color:1,size:1,material:1,func:1}, ref:"لقطات العينة ٢٨ يوليو",
+    ai:"الخلفيات والإضاءة مولّدة · المنتج تصوير حقيقي للعينة",
+    bench:"إعلان منافس محلي — نفس الفئة، ٣١ ثانية", verdict:"اعتماد"},
+  store:{live:1, url:"/products/car-diffuser",
+    check:{"الوصف":1,"جدول المقاسات":1,"الأسئلة الشائعة":1,"سياسة الاسترجاع":1,"وعد التوصيل":1,"بيانات التواصل":1,"التدقيق العربي":1,"التدقيق الإنجليزي":1},
+    metrics:[{n:"معدل التحويل", o:"2.4٪", m:"1.8٪"},{n:"سرعة الجوال (LCP)", o:"2.1 ث", m:"2.5 ث"},
+             {n:"خطوات الشراء", o:"3", m:"3"},{n:"سلة متروكة", o:"64٪", m:"69٪"}],
+    test:{what:"نقل جدول المقاسات فوق زر الشراء", days:"١٤ يوم", kpi:"معدل التحويل", ok:"≥ ٢.٩٪"}}
+},
+"P-140":{
+  scout:{agent:1, platform:"مكتبة إعلانات تيك توك", src:"عرض إعلان نشط", date:"2026-05-30",
+    adDays:118, eng:"٤٢ ألف تفاعل · ٧ إطلاقات", phase:"في الذروة", angle:"استخدام غير متوقع — حقيبة اليد بعد التنظيم",
+    complaints:["المقاسات أصغر من المتوقع","السحّاب يعلق","اللون يختلف عن الصورة"],
+    dupe:{state:"جديد", note:"لا مطابق في السجل"}},
+  comp:{flag:"clear", body:"—", note:"منسوجات — لا تسجيل إلزامي", season:null, lead:18,
+    ship:"مناسب", shipNote:"٥٩٠ غم · قابل للضغط"},
+  sup:{hs:"4202.92", dutyPct:5, docs:"متوفرة", sample:{state:"وصلت", date:"2026-05-19"},
+    ship:{track:"ARX9928471", eta:"وصلت 2026-06-14"},
+    list:[{n:"Guangzhou PackPro", r:4.9, y:12, moq:150, p:19.6, t:"عرض مباشر", sel:1},
+          {n:"Hangzhou TravelKit", r:4.4, y:6, moq:300, p:18.9, t:"سعر منشور"}]},
+  cont:{angles:[
+    {n:"الشنطة الفوضى", t:"قبل-بعد", hook:"شنطتك تشبه هذي؟",
+     scene:"إفراغ حقيبة مبعثرة ثم إعادة ترتيبها بالقطع السبع", dur:"٢٤ ثانية", pf:"تيك توك",
+     obj:"«المقاسات أصغر من المتوقع» — نصوّر بجانب ملابس حقيقية"},
+    {n:"سفر بلا كي", t:"مشكلة/حل", hook:"وصلت والملابس مكوية. كذا.",
+     scene:"فتح الحقيبة عند الوصول وإظهار الملابس", dur:"١٩ ثانية", pf:"سناب",
+     obj:"«اللون يختلف» — تصوير بإضاءة طبيعية بلا فلاتر"}]},
+  med:{match:{color:1,size:1,material:1,func:1}, ref:"لقطات العينة ١٩ مايو",
+    ai:"خلفية غرفة الفندق مولّدة · القطع تصوير حقيقي",
+    bench:"إعلان منافس محلي — نفس الفئة والسعر", verdict:"اعتماد"},
+  store:{live:1, url:"/products/travel-organizer",
+    check:{"الوصف":1,"جدول المقاسات":1,"الأسئلة الشائعة":1,"سياسة الاسترجاع":1,"وعد التوصيل":1,"بيانات التواصل":1,"التدقيق العربي":1,"التدقيق الإنجليزي":1},
+    metrics:[{n:"معدل التحويل", o:"3.1٪", m:"1.8٪"},{n:"سرعة الجوال (LCP)", o:"1.9 ث", m:"2.5 ث"},
+             {n:"خطوات الشراء", o:"3", m:"3"},{n:"سلة متروكة", o:"58٪", m:"69٪"}],
+    test:{what:"إضافة صورة مقارنة حجم بجانب لابتوب", days:"١٠ أيام", kpi:"نسبة الاسترجاع", ok:"≤ ٤٪"}}
+},
+"P-124":{
+  scout:{agent:2, platform:"سناب — متجر سلة منافس", src:"إعلان محلي نشط", date:"2026-07-25",
+    adDays:31, eng:"٩ آلاف تفاعل", phase:"صاعد", angle:"مقارنة سعر مع البديل الخشبي",
+    complaints:["يهتز عند السحب","الحجم ما يناسب كل الأدراج","البلاستيك خفيف"],
+    dupe:{state:"جديد", note:"لا مطابق في السجل"}},
+  comp:{flag:"clear", body:"—", note:"أدوات مطبخ بلاستيكية — تلامس غذائي: شهادة مطلوبة من المصنع", season:null, lead:24,
+    ship:"مناسب", shipNote:"٤١٠ غم"},
+  sup:{hs:"3924.10", dutyPct:5, docs:"قيد الطلب", sample:{state:"وصلت", date:"2026-07-30"},
+    ship:{track:"—", eta:"—"},
+    list:[{n:"Taizhou HomeFit", r:4.6, y:8, moq:200, p:11.2, t:"عرض مباشر", sel:1},
+          {n:"Foshan DrawerCo", r:4.1, y:4, moq:400, p:10.4, t:"سعر منشور"}]},
+  cont:{angles:[
+    {n:"الدرج الفوضى", t:"قبل-بعد", hook:"درج المطبخ عندك… لا تفتحه قدام أحد.",
+     scene:"فتح درج مبعثر ثم نفس الدرج بعد التنظيم", dur:"٢٠ ثانية", pf:"تيك توك",
+     obj:"«الحجم ما يناسب كل الأدراج» — نعرض المقاس بالأرقام في المشهد"}]},
+  med:null, store:null
+},
+"P-146":{
+  scout:{agent:3, platform:"منصة مصانع", src:"فئة صاعدة", date:"2026-07-18",
+    adDays:0, eng:"—", phase:"صاعد", angle:"لم تُبنَ بعد",
+    complaints:["البطارية تنتهي بسرعة","الإضاءة تومض على أقل شدة","الشحن بطيء"],
+    dupe:{state:"جديد", note:"٧ مصانع تنتج نفس الموديل — تشبّع متوقع سريع"}},
+  comp:{flag:"check", body:"الهيئة السعودية للمواصفات (SABER/SASO)",
+    note:"بطارية ليثيوم مدمجة — شهادة مطابقة إلزامية قبل الشحن", season:"school", lead:46,
+    ship:"صعب", shipNote:"بطارية ليثيوم — قيود شحن جوي"},
+  sup:{hs:"9405.20", dutyPct:5, docs:"قيد الطلب", sample:{state:"في الطريق", date:"2026-08-14"},
+    ship:{track:"—", eta:"—"},
+    list:[{n:"Shenzhen LumenX", r:4.7, y:11, moq:100, p:22.4, t:"عرض مباشر", sel:1},
+          {n:"Zhongshan BrightCo", r:4.3, y:7, moq:300, p:20.8, t:"سعر منشور"},
+          {n:"Ningbo DeskLite", r:3.9, y:2, moq:500, p:19.5, t:"تقدير"}]},
+  cont:null, med:null, store:null
+},
+"P-163":{
+  scout:{agent:1, platform:"مكتبة إعلانات ميتا", src:"عرض إعلان نشط", date:"2026-06-22",
+    adDays:82, eng:"٢٧ ألف تفاعل", phase:"في الذروة", angle:"مشكلة/حل — حر الخارج",
+    complaints:["الصوت مزعج","تشد الشعر","البطارية ساعتان فقط"],
+    dupe:{state:"جديد", note:"لا مطابق في السجل"}},
+  comp:{flag:"check", body:"الهيئة السعودية للمواصفات (SABER/SASO)",
+    note:"جهاز كهربائي ببطارية — شهادة مطابقة مطلوبة", season:null, lead:29,
+    ship:"مناسب", shipNote:"٢٦٠ غم"},
+  sup:{hs:"8414.51", dutyPct:5, docs:"متوفرة", sample:{state:"وصلت", date:"2026-07-09"},
+    ship:{track:"CNE8812004", eta:"وصلت 2026-07-06"},
+    list:[{n:"Dongguan CoolNeck", r:4.5, y:6, moq:200, p:16.2, t:"عرض مباشر", sel:1},
+          {n:"Ningbo AirWear", r:4.0, y:3, moq:500, p:15.1, t:"سعر منشور"}]},
+  cont:{angles:[
+    {n:"طابور الحر", t:"مشكلة/حل", hook:"واقف بالشمس؟ شغّلها.",
+     scene:"شخص واقف في طابور خارجي ثم يشغّل المروحة", dur:"١٥ ثانية", pf:"تيك توك",
+     obj:"«الصوت مزعج» — نصوّر بصوت محيط حقيقي بلا موسيقى تغطيه"},
+    {n:"ثلاث سرعات", t:"مقارنة", hook:"ثلاث سرعات… وحدة بس تسمعها.",
+     scene:"عرض السرعات الثلاث مع مؤشر صوت", dur:"١٨ ثانية", pf:"سناب",
+     obj:"«تشد الشعر» — نظهر الشبك الواقي عن قرب"}]},
+  med:{match:{color:1,size:1,material:1,func:0}, ref:"لقطات العينة ٩ يوليو",
+    ai:"الخلفية الخارجية مولّدة · المنتج تصوير حقيقي",
+    bench:"إعلان منافس محلي — نفس الفئة", verdict:"تعديل",
+    fixes:["المشهد يُظهر تبريداً محسوساً لم يُختبر على العينة — يُحذف أو يُستبدل بمؤشر السرعة",
+           "مدة تشغيل ٦ ساعات مذكورة بلا تأكيد من العينة — تُحذف حتى القياس"]},
+  store:null
+},
+"P-158":{
+  scout:{agent:2, platform:"إنستقرام — متجر زد منافس", src:"إعلان محلي نشط", date:"2026-07-02",
+    adDays:47, eng:"١٤ ألف تفاعل", phase:"صاعد", angle:"إثبات اجتماعي — تقييمات كبار السن",
+    complaints:["السماكة أقل من المتوقع","الرائحة عند الفتح","اللون يبهت"],
+    dupe:{state:"مكرر", note:"رُصد في مارس — السبب الجديد: موسم مختلف + مورد أقرب"}},
+  comp:{flag:"clear", body:"—", note:"منسوجات منزلية", season:"winter", lead:33,
+    ship:"مناسب", shipNote:"١.٢ كغم · مضغوط"},
+  sup:{hs:"5705.00", dutyPct:5, docs:"متوفرة", sample:{state:"وصلت", date:"2026-07-21"},
+    ship:{track:"—", eta:"—"},
+    list:[{n:"Foshan ComfortMat", r:4.6, y:10, moq:100, p:26.5, t:"عرض مباشر", sel:1},
+          {n:"مورد محلي — الرياض", r:4.2, y:5, moq:50, p:31.0, t:"عرض مباشر"}]},
+  cont:{angles:[
+    {n:"ركبة الوالدة", t:"إثبات اجتماعي", hook:"اشتريتها لأمي… وصارت تسأل عن وحدة ثانية.",
+     scene:"لقطة يد تضغط على السجادة وترجع لشكلها", dur:"٢١ ثانية", pf:"سناب",
+     obj:"«السماكة أقل من المتوقع» — نصوّر السماكة بجانب مسطرة"}]},
+  med:{match:{color:1,size:1,material:1,func:1}, ref:"لقطات العينة ٢١ يوليو",
+    ai:"خلفية الغرفة مولّدة · السجادة تصوير حقيقي",
+    bench:"إعلان منافس محلي — نفس الفئة", verdict:"اعتماد"},
+  store:{live:0, url:"/products/prayer-mat (مسودة)",
+    check:{"الوصف":1,"جدول المقاسات":1,"الأسئلة الشائعة":1,"سياسة الاسترجاع":1,"وعد التوصيل":0,"بيانات التواصل":1,"التدقيق العربي":1,"التدقيق الإنجليزي":0},
+    metrics:[{n:"معدل التحويل", o:"— (لم تُنشر)", m:"1.8٪"},{n:"سرعة الجوال (LCP)", o:"2.3 ث", m:"2.5 ث"},
+             {n:"خطوات الشراء", o:"3", m:"3"},{n:"سلة متروكة", o:"—", m:"69٪"}],
+    test:null}
+},
+"P-152":{
+  scout:{agent:1, platform:"مكتبة إعلانات ميتا", src:"عرض إعلان نشط", date:"2026-07-20",
+    adDays:39, eng:"١١ ألف تفاعل", phase:"مشبع", angle:"استخدام غير متوقع — تقطيع سريع",
+    complaints:["يصدأ بعد أسابيع","الشفرة تجرح","صعب التنظيف"],
+    dupe:{state:"جديد", note:"لا مطابق في السجل"}},
+  comp:{flag:"clear", body:"—", note:"أدوات مطبخ معدنية — تلامس غذائي", season:null, lead:22,
+    ship:"مناسب", shipNote:"٣١٠ غم · حواف حادة تحتاج تغليف"},
+  sup:{hs:"8210.00", dutyPct:5, docs:"متوفرة", sample:{state:"وصلت", date:"2026-07-27"},
+    ship:{track:"—", eta:"—"},
+    list:[{n:"Yangjiang KitchenPro", r:4.4, y:7, moq:300, p:9.8, t:"عرض مباشر", sel:1}]},
+  cont:{angles:[
+    {n:"دقيقة وحدة", t:"مشكلة/حل", hook:"سلطة كاملة… بدقيقة.",
+     scene:"تقطيع خضار متتابع بلقطة واحدة", dur:"١٦ ثانية", pf:"تيك توك",
+     obj:"«الشفرة تجرح» — نظهر واقي الأصابع في كل لقطة"}]},
+  med:null, store:null
+},
+"P-131":{
+  scout:{agent:3, platform:"منصة مصانع", src:"فئة صاعدة", date:"2026-07-29",
+    adDays:0, eng:"—", phase:"صاعد", angle:"لم تُبنَ بعد",
+    complaints:["نتائج غير ثابتة","حساسية جلدية","تعليمات غير واضحة"],
+    dupe:{state:"جديد", note:"٤ مصانع تنتج نفس الموديل"}},
+  comp:{flag:"blocked", body:"الهيئة العامة للغذاء والدواء (SFDA)",
+    note:"جهاز عناية بالبشرة — فئة تتطلب تسجيلاً قبل الاستيراد والتسويق. لا يُمرَّر قبل حسم الوضع النظامي.",
+    season:null, lead:0, ship:"مناسب", shipNote:"—"},
+  sup:null, cont:null, med:null, store:null
+},
+"P-171":{
+  scout:{agent:1, platform:"مكتبة إعلانات ميتا", src:"عرض إعلان نشط", date:"2026-08-02",
+    adDays:22, eng:"٦ آلاف تفاعل", phase:"مشبع", angle:"مقارنة سعر",
+    complaints:["المغناطيس ضعيف","يسقط على المطبات","يخدش الجوال"],
+    dupe:{state:"مكرر", note:"رُصد قبل ٤١ يوماً ورُفض للهامش — السبب الجديد: سعر المورد نزل ١٩٪"}},
+  comp:null, sup:null, cont:null, med:null, store:null
+}
+};
+
 /* ============================================================
    الحسابات
    ============================================================ */
@@ -509,7 +748,7 @@ function lines(p){
   ];
 }
 
-const state = {metric:"orders", range:30, region:null, stage:null, product:"P-118", agent:null, hot:null, tbl:false};
+const state = {metric:"orders", range:30, region:null, stage:null, product:"P-118", agent:null, hot:null, tbl:false, tab:"scout"};
 
 function activeProduct(){ return PRODUCTS.find(p=>p.id===state.product); }
 
@@ -887,6 +1126,177 @@ function paintToggles(){
   document.querySelectorAll("[data-metric]").forEach(b=> b.setAttribute("aria-pressed", b.dataset.metric===state.metric));
 }
 
+/* ---- الموسمية وزمن التجهيز ---- */
+const stageIdx = id => STAGES.findIndex(s=>s.id===id);
+const DAY = 86400000;
+const T0 = new Date("2026-08-01"), T1 = new Date("2027-02-28");
+const tpos = d => Math.max(0, Math.min(100, ((new Date(d)-T0)/(T1-T0))*100));
+const dfmt = d => new Date(d).toLocaleDateString("ar-u-nu-latn-ca-gregory",{day:"numeric",month:"short"});
+const maybeDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s) ? dfmt(s) : s;  // بعض القيم نص («وصلت …») لا تاريخ صرف
+
+function paintSeasons(){
+  const p = activeProduct(), D = p?DOSSIER[p.id]:null, c = D?D.comp:null;
+  const shade = ["--s4","--s3","--s2","--s1"];
+  let months = "", m = new Date(T0);
+  while(m < T1){
+    months += `<span class="mo" style="left:${tpos(m)}%">${m.toLocaleDateString("ar-u-nu-latn-ca-gregory",{month:"short"})}</span>`;
+    m.setMonth(m.getMonth()+1);
+  }
+  const seas = SEASONS.map((s,i)=>{
+    const a = tpos(s.from), b = tpos(s.to), on = c && c.season===s.id;
+    return `<div class="sea" style="left:${a}%;width:${Math.max(4,b-a)}%;background:var(${shade[i%4]});${on?"outline:2px solid var(--gold);outline-offset:2px":""}"
+      title="${s.name}: ${dfmt(s.from)} — ${dfmt(s.to)}">${s.name}</div>`;
+  }).join("");
+
+  let prep = "", msg = "";
+  if(!p){ msg = "اختر منتجاً لعرض زمن تجهيزه مقابل نافذة الموسم."; }
+  else if(!c){ msg = `<b>${p.name}</b> — لم تُفتح بوابة التقييم بعد (و٤)، فلا نافذة موسم ولا زمن تجهيز معتمد.`; }
+  else {
+    const ready = new Date(TODAY.getTime() + c.lead*DAY);
+    const sea = c.season ? SEASONS.find(s=>s.id===c.season) : null;
+    const late = sea ? ready > new Date(sea.from) : false;
+    prep = `<div class="prep" style="left:${tpos(TODAY)}%;width:${Math.max(6,tpos(ready)-tpos(TODAY))}%;background:${late?"var(--crit)":"var(--good)"}">
+              تجهيز ${fmt(c.lead)} يوم</div>`;
+    if(!sea){
+      msg = `<b>${p.name}</b> — غير موسمي: لا قيد بداية موسم. زمن التجهيز <b>${fmt(c.lead)} يوم</b> ⟵ الجاهزية <b>${dfmt(ready)}</b>.`;
+    } else if(late){
+      const miss = Math.ceil((ready - new Date(sea.from))/DAY);
+      msg = `<span class="st-crit">✕</span> <b>${p.name}</b> — التجهيز <b>${fmt(c.lead)} يوم</b> ⟵ الجاهزية <b>${dfmt(ready)}</b>، و«${sea.name}» يبدأ <b>${dfmt(sea.from)}</b>: <span class="st-crit">يفوت بداية الموسم بـ${fmt(miss)} يوم</span> — بوابة و٤ ترفض الاعتماد الموسمي.`;
+    } else {
+      const slack = Math.floor((new Date(sea.from) - ready)/DAY);
+      msg = `<span class="st-good">✓</span> <b>${p.name}</b> — الجاهزية <b>${dfmt(ready)}</b> قبل بداية «${sea.name}» (<b>${dfmt(sea.from)}</b>) بـ<b>${fmt(slack)} يوم</b>.`;
+    }
+  }
+  $("#tl").innerHTML =
+    `<div class="axis">${months}<div class="now" style="left:${tpos(TODAY)}%"></div></div>
+     <div class="band">${seas}<div class="now" style="left:${tpos(TODAY)}%"></div></div>
+     <div class="band" style="height:22px">${prep}<div class="now" style="left:${tpos(TODAY)}%"></div>
+       <span class="nowlab" style="left:${tpos(TODAY)}%;top:22px">اليوم</span></div>
+     <div style="height:14px"></div>`;
+  $("#seasonmsg").innerHTML = msg;
+}
+
+/* ---- ملف المنتج: مخرجات كل وكيل ---- */
+const TABS = [
+  {id:"scout", name:"الرصد",             need:0, ag:"و١–٣"},
+  {id:"comp",  name:"الامتثال والموسم",  need:1, ag:"و٤"},
+  {id:"sup",   name:"التوريد",           need:2, ag:"و٥"},
+  {id:"cont",  name:"المحتوى",           need:4, ag:"و٧"},
+  {id:"med",   name:"الوسائط والمطابقة", need:5, ag:"و٨–٩"},
+  {id:"store", name:"المتجر",            need:7, ag:"و١٠–١١"}
+];
+const kv = arr => `<div class="kv">${arr.map(([l,v])=>`<div class="c"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("")}</div>`;
+const yn = b => b ? `<span class="st-good">✓</span>` : `<span class="st-crit">✗</span>`;
+const FLAG = {clear:["st-good","✓","سالك"], check:["st-warn","⚠","يحتاج تحقق نظامي"], blocked:["st-crit","✕","مرفوض نظاماً"]};
+
+function paintDossier(){
+  const p = activeProduct();
+  const tabsEl = $("#dosstabs"), body = $("#dossbody");
+  if(!p){ tabsEl.innerHTML = ""; body.innerHTML = `<div class="locked">اختر منتجاً لعرض ملفه.</div>`; return; }
+  const D = DOSSIER[p.id] || {}, si = stageIdx(p.stage);
+  tabsEl.innerHTML = TABS.map(t=>{
+    const open = si >= t.need && D[t.id];
+    return `<button role="tab" data-tab="${t.id}" aria-selected="${state.tab===t.id}" class="${open?"":"lock"}">${t.name} <span style="opacity:.6;font-size:11px">${t.ag}</span></button>`;
+  }).join("");
+  tabsEl.querySelectorAll("button").forEach(b=> b.onclick = ()=>{ state.tab = b.dataset.tab; paintDossier(); });
+
+  const t = TABS.find(x=>x.id===state.tab), d = D[state.tab];
+  if(si < t.need || !d){
+    const cur = STAGES[si];
+    body.innerHTML = `<div class="locked">🔒 <b>${t.name}</b> — لم تُفتح هذه البوابة بعد.<br>
+      «${p.name}» واقف عند <b>${cur.icon} ${cur.name}</b> (و${cur.agents.join("،")}).
+      ${p.wait?`<br>ينتظر: <b>${p.wait}</b>`:""}</div>`;
+    return;
+  }
+
+  if(state.tab==="scout"){
+    body.innerHTML = kv([
+      ["الوكيل الراصد", "و"+d.agent], ["المنصة", d.platform], ["نوع المصدر", d.src],
+      ["تاريخ الرصد", dfmt(d.date)], ["عمر الإعلان", d.adDays?fmt(d.adDays)+" يوم":"—"],
+      ["إشارات التفاعل", d.eng], ["مرحلة المنتج", d.phase],
+      ["فحص السجل", `${d.dupe.state}`]
+    ]) +
+    `<div class="kv"><div class="c" style="grid-column:1/-1"><div class="l">الزاوية الإعلانية المرصودة</div><div class="v">${d.angle}</div></div></div>
+     <div style="font-size:12.5px;color:var(--mut);margin-bottom:6px">أعلى ٣ شكاوى متكررة في التقييمات — مدخل إلزامي لصفحة المنتج والأسئلة الشائعة:</div>
+     <ul class="lst">${d.complaints.map(c=>`<li>${c}</li>`).join("")}</ul>
+     <div style="font-size:12px;color:var(--mut);margin-top:8px">السجل المشترك: ${d.dupe.note}</div>`;
+  }
+
+  else if(state.tab==="comp"){
+    const f = FLAG[d.flag];
+    const sea = d.season ? SEASONS.find(s=>s.id===d.season) : null;
+    body.innerHTML = kv([
+      ["علامة الامتثال", `<span class="${f[0]}">${f[1]} ${f[2]}</span>`],
+      ["الجهة المعنية", d.body],
+      ["نافذة الموسم", sea? `${sea.name}: ${dfmt(sea.from)} — ${dfmt(sea.to)}` : "غير موسمي"],
+      ["زمن التجهيز", d.lead? fmt(d.lead)+" يوم" : "—"],
+      ["قابلية التوصيل", `${d.ship==="مناسب"?'<span class="st-good">✓</span>':'<span class="st-warn">⚠</span>'} ${d.ship}`],
+      ["ملاحظة التوصيل", d.shipNote]
+    ]) + `<div class="seasonmsg">${d.note}</div>`;
+  }
+
+  else if(state.tab==="sup"){
+    const DOC = {"متوفرة":"st-good","قيد الطلب":"st-warn","غير متوفرة":"st-crit"};
+    body.innerHTML = kv([
+      ["HS code", d.hs], ["الرسوم الجمركية", AR1.format(d.dutyPct)+"٪"],
+      ["مستندات المطابقة", `<span class="${DOC[d.docs]}">${d.docs}</span>`],
+      ["العينة", `${d.sample.state} · ${dfmt(d.sample.date)}`],
+      ["رقم التتبع", d.ship.track], ["الوصول المتوقع", maybeDate(d.ship.eta)]
+    ]) +
+    `<div style="overflow-x:auto"><table>
+      <thead><tr><th>المورد</th><th>التقييم</th><th>سنوات</th><th>MOQ</th><th>السعر (ر.س)</th><th>نوع المصدر</th></tr></thead>
+      <tbody>${d.list.map(s=>`<tr>
+        <td><b>${s.n}</b> ${s.sel?'<span class="tag t-go">✓ مقترح</span>':""}</td>
+        <td>${AR1.format(s.r)}</td><td>${fmt(s.y)}</td><td>${fmt(s.moq)}</td>
+        <td><b>${AR1.format(s.p)}</b></td>
+        <td class="${s.t==="تقدير"?"st-warn":""}">${s.t}</td></tr>`).join("")}</tbody>
+    </table></div>
+    <div style="font-size:12px;color:var(--mut);margin-top:8px">«تقدير» لا يدخل حسبة الجدوى — يُستبدل بعرض مباشر قبل أي طلب جملة.</div>`;
+  }
+
+  else if(state.tab==="cont"){
+    body.innerHTML = `<div class="angles">${d.angles.map(a=>`
+      <div class="angle">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <b style="font-size:13.5px">${a.n}</b><span class="tag t-mut">${a.t}</span></div>
+        <div class="h">«${a.hook}»</div>
+        <div style="font-size:12.5px;color:var(--ink2)">${a.scene}</div>
+        <div style="font-size:12px;color:var(--mut);margin-top:8px">${a.dur} · ${a.pf}</div>
+        <div style="font-size:12px;color:var(--ink2);margin-top:6px;border-top:1px solid var(--line);padding-top:7px">
+          الاعتراض المعالَج: ${a.obj}</div>
+      </div>`).join("")}</div>
+      ${d.angles.length<2?`<div class="seasonmsg"><span class="st-warn">⚠</span> زاوية واحدة فقط — الحد الأدنى زاويتان مختلفتان قبل التسليم لبوابة الوسائط.</div>`:""}`;
+  }
+
+  else if(state.tab==="med"){
+    const m = d.match, V = {"اعتماد":"t-go","تعديل":"t-wait","رفض":"t-stop"};
+    body.innerHTML = kv([
+      ["قرار المراجع (و٩)", `<span class="tag ${V[d.verdict]}">${d.verdict}</span>`],
+      ["مطابقة العينة", `اللون ${yn(m.color)} · الحجم ${yn(m.size)} · الخامة ${yn(m.material)} · الوظيفة ${yn(m.func)}`],
+      ["المرجع من العينة", d.ref],
+      ["المعيار المقارَن", d.bench]
+    ]) +
+    `<div class="seasonmsg">🤖 تصريح التوليد: ${d.ai}</div>
+     ${d.fixes?`<div style="margin-top:10px"><div style="font-size:12.5px;color:var(--mut);margin-bottom:6px">التعديلات المطلوبة:</div>
+       <ul class="lst">${d.fixes.map(f=>`<li>${f}</li>`).join("")}</ul></div>`:""}`;
+  }
+
+  else if(state.tab==="store"){
+    const keys = Object.keys(d.check), missing = keys.filter(k=>!d.check[k]);
+    body.innerHTML =
+      `<div class="chk">${keys.map(k=>`<div>${yn(d.check[k])} ${k}</div>`).join("")}</div>
+       <div class="seasonmsg" style="margin-bottom:12px">${missing.length
+         ? `<span class="st-crit">✕</span> لا تُنشر الصفحة — ناقص: <b>${missing.join(" · ")}</b>`
+         : `<span class="st-good">✓</span> قائمة الفحص مكتملة · الصفحة: <b>${d.url}</b>`}</div>
+       <div style="overflow-x:auto"><table>
+         <thead><tr><th>المؤشر</th><th>رقمنا الحالي</th><th>معيار السوق</th></tr></thead>
+         <tbody>${d.metrics.map(x=>`<tr><td><b>${x.n}</b></td><td>${x.o}</td><td style="color:var(--mut)">${x.m}</td></tr>`).join("")}</tbody>
+       </table></div>
+       ${d.test?`<div class="seasonmsg" style="margin-top:12px">🧪 <b>الاختبار الجاري:</b> ${d.test.what} · المدة ${d.test.days} · المؤشر ${d.test.kpi} · معيار النجاح ${d.test.ok}
+         <div style="color:var(--mut);font-size:11.5px;margin-top:4px">تغيير جوهري واحد فقط على الصفحة أثناء الاختبار.</div></div>`:""}`;
+  }
+}
+
 /* ---- التشغيل ---- */
 function render(){
   paintToggles(); paintFilters(); paintKPIs();
@@ -895,6 +1305,7 @@ function render(){
   if(activeProduct()){ paintEcon(); paintVOC(); }
   else { $("#econ").innerHTML = `<div class="phead"><div><h3>🧮 بطاقة القرار</h3><div class="note">اختر منتجاً من البطاقات أو الجدول لعرض حسبة الجدوى</div></div></div>`;
          $("#voc").innerHTML = `<div style="color:var(--mut);font-size:12.5px">اختر منتجاً لعرض تصنيف تواصل عملائه.</div>`; $("#rule3").innerHTML=""; }
+  paintSeasons(); paintDossier();
   paintDecisions(); paintAgents();
 }
 
