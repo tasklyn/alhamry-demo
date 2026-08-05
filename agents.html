@@ -80,7 +80,19 @@
   .cols{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:14px}
   .cols3{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
   @media(max-width:1150px){.cols,.cols3{grid-template-columns:1fr}}
-  @media(max-width:900px){.shell{grid-template-columns:1fr}.rail{position:static;height:auto;border:0;border-bottom:1px solid var(--line)}}
+  @media(max-width:900px){
+    .shell{display:flex;flex-direction:column}
+    .main{order:1;padding:14px 13px 34px}
+    .rail{order:2;position:static;height:auto;border:0;border-top:1px solid var(--line)}
+    .rail #agents{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+    .rail h4{grid-column:1/-1}
+    /* وحدات SVG تتقلص مع العرض — نكبّر التسميات حتى تبقى مقروءة */
+    .reg-lab{font-size:46px;stroke-width:11px}
+    .reg-val{display:none} /* القيم تُقرأ من قائمة الترتيب تحتها مباشرة */
+    .kpi .v{font-size:21px}
+    .top h1{font-size:18px}
+    .rrow{grid-template-columns:74px 1fr 54px}
+  }
 
   /* ---------- map ---------- */
   .mapwrap{position:relative}
