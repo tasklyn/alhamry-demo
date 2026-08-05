@@ -723,6 +723,8 @@ const fmt = n => AR.format(Math.round(n));
 const sar = n => fmt(n)+' ر.س';
 const sarC = n => n>=100000 ? AR1.format(n/1000)+' ألف ر.س' : sar(n); // مختصر للأرقام الكبيرة
 const shortNum = n => n>=1000 ? AR1.format(n/1000)+'k' : fmt(n);      // للتسميات الضيقة
+// في بطاقة KPI الضيقة نُصغّر وحدة العملة بدل قصّ الرقم
+const sarKpi = n => n>=100000 ? AR1.format(n/1000)+'<small> ألف ر.س</small>' : fmt(n)+'<small> ر.س</small>';
 
 // معامل المدة — الطلبات تتراكم مع الوقت
 const rangeFactor = r => r===7 ? 0.24 : r===90 ? 2.85 : 1;
@@ -920,7 +922,7 @@ function paintKPIs(){
     {k:"بانتظار قرارك", v:fmt(waits), t:`من ${fmt(vis.length)} منتج في النطاق`, cls:waits?"st-warn":"st-good", ic:waits?"⚠":"✓"},
     {k:"دخل المسار هذا الأسبوع", v:`${fmt(QUOTA.used)}<small> / ${fmt(QUOTA.cap)}</small>`, t:`أُوقف ${fmt(QUOTA.dupes)} مكرر قبل الدخول`, cls:"st-good", ic:"✓"},
     {k:"الطلبات", v:fmt(orders), t:state.region?`في ${MAP.regions.find(r=>r.code===state.region).ar}`:"كل المناطق"},
-    {k:"المبيعات", v:sarC(sales), t:`ربح الوحدات ${sarC(profit)}`, cls:"st-good", ic:"▲"},
+    {k:"المبيعات", v:sarKpi(sales), t:`ربح الوحدات ${sarC(profit)}`, cls:"st-good", ic:"▲"},
     {k:"نسبة الاسترجاع", v:AR1.format(avgRet||0)+"٪", t:avgRet>8?"فوق الحد ٨٪":"تحت الحد ٨٪", cls:avgRet>8?"st-crit":"st-good", ic:avgRet>8?"✕":"✓"},
     {k:"متوسط أقصى CPA مسموح", v:sar(cpaMax), t:"معيار إيقاف الاختبار"}
   ];
