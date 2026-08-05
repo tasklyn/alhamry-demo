@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>غرفة العمليات — فريق الـ13 وكيل | ALHAMRY</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  :root{
+    color-scheme:dark;
+    --page:#0c0d10; --surf:#16181d; --surf2:#1c1f26; --line:#282c35; --line2:#333845;
+    --ink:#ffffff; --ink2:#c3c2b7; --mut:#898781;
+    --gold:#d4a24c; --gold-soft:rgba(212,162,76,.14);
+    /* sequential ramp — one hue (blue), light = high */
+    --s1:#104281; --s2:#1c5cab; --s3:#2a78d6; --s4:#5598e7; --s5:#86b6ef;
+    --empty:#22262e;
+    --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+    --grid:#2c2c2a; --axis:#383835;
+  }
+  :root[data-theme="light"]{
+    color-scheme:light;
+    --page:#f4f5f7; --surf:#ffffff; --surf2:#f7f8fa; --line:#e4e7ee; --line2:#d3d8e2;
+    --ink:#0b0b0b; --ink2:#52514e; --mut:#7c7a75;
+    --gold:#9a6f22; --gold-soft:rgba(184,138,62,.14);
+    --s1:#b7d3f6; --s2:#86b6ef; --s3:#3987e5; --s4:#256abf; --s5:#104281;
+    --empty:#e8ebf1;
+    --grid:#e1e0d9; --axis:#c3c2b7;
+  }
+
+  html,body{background:var(--page)}
+  body{font-family:system-ui,-apple-system,"SF Arabic","Segoe UI",Tahoma,sans-serif;color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---------- shell ---------- */
+  .demobar{background:#1d2733;color:#fff;text-align:center;font-size:12.5px;padding:7px 14px}
+  .demobar b{color:#ffd27a}
+  :root[data-theme="light"] .demobar{background:#1d2733;color:#fff}
+
+  .shell{display:grid;grid-template-columns:264px 1fr;min-height:100vh}
+  .rail{background:var(--surf);border-inline-start:1px solid var(--line);padding:16px 12px;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .main{padding:18px 22px 44px;min-width:0}
+
+  /* ---------- top ---------- */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .top h1{font-size:20px;font-weight:800;letter-spacing:-.2px}
+  .top .sub{color:var(--mut);font-size:12.5px;margin-top:2px}
+  .tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .seg{display:flex;background:var(--surf2);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+  .seg button{background:none;border:0;color:var(--ink2);font:inherit;font-size:12.5px;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .seg button:hover{background:var(--line)}
+  .seg button[aria-pressed="true"]{background:var(--gold);color:#1a1300;font-weight:700}
+  .icobtn{background:var(--surf2);border:1px solid var(--line);color:var(--ink2);border-radius:11px;width:38px;height:34px;cursor:pointer;font-size:15px}
+  .icobtn:hover{border-color:var(--line2);color:var(--ink)}
+
+  /* ---------- filter bar ---------- */
+  .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;min-height:30px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--gold-soft);border:1px solid var(--gold);color:var(--gold);
+        border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600}
+  .chip button{background:none;border:0;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0;opacity:.75}
+  .chip button:hover{opacity:1}
+  .chip.ghost{background:transparent;border-color:var(--line2);color:var(--mut);font-weight:500}
+
+  /* ---------- panels ---------- */
+  .panel{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .panel h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .panel .note{color:var(--mut);font-size:11.5px;font-weight:400;margin-top:2px}
+  .phead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+
+  .grid{display:grid;gap:14px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin-bottom:14px}
+  .kpi{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:14px 15px;position:relative;overflow:hidden}
+  .kpi .k{color:var(--mut);font-size:12px}
+  .kpi .v{font-size:25px;font-weight:800;margin-top:3px;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kpi .v small{font-size:13px;font-weight:600;color:var(--mut)}
+  .kpi .t{font-size:11.5px;margin-top:4px;color:var(--ink2);display:flex;align-items:center;gap:5px}
+  .kpi .spark{position:absolute;inset-inline-end:0;bottom:0;opacity:.5}
+  .st-good{color:var(--good)} .st-warn{color:var(--warn)} .st-crit{color:var(--crit)} .st-ser{color:var(--serious)}
+
+  .cols{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:14px}
+  .cols3{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  @media(max-width:1150px){.cols,.cols3{grid-template-columns:1fr}}
+  @media(max-width:900px){.shell{grid-template-columns:1fr}.rail{position:static;height:auto;border:0;border-bottom:1px solid var(--line)}}
+
+  /* ---------- map ---------- */
+  .mapwrap{position:relative}
+  svg.map{width:100%;height:auto;display:block;overflow:visible}
+  .reg{stroke:var(--surf);stroke-width:1.4;cursor:pointer;transition:fill .45s cubic-bezier(.4,0,.2,1),opacity .2s,transform .25s;transform-origin:center;transform-box:fill-box}
+  .reg:hover{opacity:.92;filter:brightness(1.16)}
+  .reg.sel{stroke:var(--gold);stroke-width:2.6}
+  .reg.dim{opacity:.28}
+  .reg-lab{font-size:12.5px;fill:var(--ink);paint-order:stroke;stroke:var(--surf);stroke-width:3.4px;stroke-linejoin:round;text-anchor:middle;pointer-events:none;font-weight:600}
+  .reg-val{font-size:10.5px;fill:var(--ink2);paint-order:stroke;stroke:var(--surf);stroke-width:3px;text-anchor:middle;pointer-events:none}
+  .city{fill:var(--gold);stroke:var(--surf);stroke-width:1.2;pointer-events:none}
+  .pulse{fill:none;stroke:var(--gold);opacity:0;transform-origin:center;transform-box:fill-box}
+  .arc{fill:none;stroke:var(--gold);stroke-width:1.4;stroke-dasharray:5 7;opacity:.5;animation:dash 2.6s linear infinite}
+  @keyframes dash{to{stroke-dashoffset:-24}}
+  @keyframes ping{0%{opacity:.75;r:6}70%{opacity:0;r:26}100%{opacity:0;r:26}}
+  .ship{fill:var(--gold)}
+  @media(prefers-reduced-motion:reduce){.arc,.pulse,.ship{animation:none!important}}
+
+  .legend{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;color:var(--mut);font-size:11.5px}
+  .ramp{display:flex;border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+  .ramp i{width:26px;height:10px;display:block}
+
+  .tip{position:fixed;pointer-events:none;background:var(--surf2);border:1px solid var(--line2);border-radius:12px;
+       padding:10px 12px;font-size:12.5px;box-shadow:0 12px 34px rgba(0,0,0,.45);opacity:0;transition:opacity .12s;z-index:60;min-width:180px}
+  .tip h4{font-size:13px;margin-bottom:6px}
+  .tip .r{display:flex;justify-content:space-between;gap:18px;color:var(--ink2);font-size:12px}
+  .tip .r b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* ---------- rank list ---------- */
+  .rank{display:flex;flex-direction:column;gap:7px}
+  .rrow{display:grid;grid-template-columns:88px 1fr 62px;align-items:center;gap:9px;cursor:pointer;padding:3px 4px;border-radius:8px}
+  .rrow:hover,.rrow.hot{background:var(--surf2)}
+  .rrow .nm{font-size:12.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rrow .tr{display:block;height:9px;background:var(--empty);border-radius:4px;overflow:hidden}
+  .rrow .fl{display:block;height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+  .rrow .vv{font-size:12px;text-align:start;color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* ---------- funnel ---------- */
+  .funnel{display:flex;flex-direction:column;gap:6px}
+  .fst{display:grid;grid-template-columns:150px 1fr 34px;align-items:center;gap:10px;cursor:pointer;padding:4px;border-radius:9px;border:1px solid transparent}
+  .fst:hover{background:var(--surf2)}
+  .fst[aria-pressed="true"]{border-color:var(--gold);background:var(--gold-soft)}
+  .fst .lb{font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:6px}
+  .fst .lb i{font-style:normal;opacity:.7;font-size:11px}
+  .fst .bar{height:22px;background:var(--empty);border-radius:6px;overflow:hidden}
+  .fst .bar span{display:block;height:100%;border-radius:6px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+  .fst .ct{font-size:12.5px;text-align:start;font-variant-numeric:tabular-nums;color:var(--ink)}
+
+  /* ---------- cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:10px}
+  .card{background:var(--surf2);border:1px solid var(--line);border-radius:13px;padding:12px;cursor:pointer;transition:.18s;position:relative}
+  .card:hover{border-color:var(--line2);transform:translateY(-2px)}
+  .card.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  .card .nm{font-size:13.5px;font-weight:700;margin-bottom:3px}
+  .card .mt{color:var(--mut);font-size:11.5px;display:flex;gap:8px;flex-wrap:wrap}
+  .card .fx{display:flex;align-items:center;justify-content:space-between;margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
+  .card .mg{font-size:12.5px;font-variant-numeric:tabular-nums}
+
+  .tag{font-size:10.5px;padding:2px 8px;border-radius:999px;border:1px solid;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-weight:600}
+  .t-go{color:var(--good);border-color:rgba(12,163,12,.45);background:rgba(12,163,12,.1)}
+  .t-wait{color:var(--warn);border-color:rgba(250,178,25,.45);background:rgba(250,178,25,.1)}
+  .t-stop{color:var(--crit);border-color:rgba(208,59,59,.45);background:rgba(208,59,59,.1)}
+  .t-mut{color:var(--mut);border-color:var(--line2)}
+
+  /* ---------- table ---------- */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:start;color:var(--mut);font-weight:600;font-size:11.5px;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:9px 6px;border-bottom:1px solid var(--line);color:var(--ink2);font-variant-numeric:tabular-nums}
+  td b{color:var(--ink);font-weight:700}
+  tr:last-child td{border-bottom:0}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--surf2)}
+  .late{color:var(--crit);font-weight:700}
+
+  /* ---------- econ ---------- */
+  .econ-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .econ-h .big{font-size:30px;font-weight:800;letter-spacing:-.6px}
+  .scen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+  .sc{background:var(--surf2);border:1px solid var(--line);border-radius:11px;padding:10px}
+  .sc .l{font-size:11.5px;color:var(--mut);display:flex;align-items:center;gap:5px}
+  .sc .n{font-size:17px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .sc.base{border-color:var(--gold)}
+  .stoprule{background:rgba(208,59,59,.09);border:1px solid rgba(208,59,59,.35);border-radius:11px;padding:10px 12px;font-size:12.5px;color:var(--ink2);margin-top:4px}
+  .stoprule b{color:var(--ink)}
+  .costbar{display:flex;height:14px;border-radius:6px;overflow:hidden;gap:2px;margin:6px 0 10px}
+  .costbar i{display:block;height:100%}
+
+  /* ---------- agents rail ---------- */
+  .rail h4{font-size:11.5px;color:var(--mut);margin:14px 6px 7px;letter-spacing:.3px}
+  .rail h4:first-child{margin-top:2px}
+  .ag{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:11px;cursor:pointer;border:1px solid transparent;margin-bottom:2px}
+  .ag:hover{background:var(--surf2)}
+  .ag[aria-pressed="true"]{background:var(--gold-soft);border-color:var(--gold)}
+  .ag .n{width:21px;height:21px;border-radius:7px;background:var(--surf2);border:1px solid var(--line);display:grid;place-items:center;font-size:10.5px;color:var(--mut);flex-shrink:0;font-variant-numeric:tabular-nums}
+  .ag .tx{flex:1;min-width:0}
+  .ag .tx .t1{display:block;font-size:12.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ag .tx .t2{display:block;font-size:10.5px;line-height:1.3;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .d-on{background:var(--good);box-shadow:0 0 0 3px rgba(12,163,12,.16)}
+  .d-wait{background:var(--warn);box-shadow:0 0 0 3px rgba(250,178,25,.16)}
+  .d-blk{background:var(--crit);box-shadow:0 0 0 3px rgba(208,59,59,.16)}
+  .badge{font-size:10.5px;background:var(--surf2);border:1px solid var(--line);border-radius:999px;padding:1px 7px;color:var(--ink2);font-variant-numeric:tabular-nums}
+
+  .brand{display:flex;align-items:center;gap:9px;padding:4px 6px 12px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .brand .lg{font-size:16px;font-weight:800;color:var(--gold)}
+  .brand .sm{font-size:10.5px;color:var(--mut)}
+
+  /* ---------- voc ---------- */
+  .voc{display:flex;flex-direction:column;gap:8px}
+  .vrow{display:grid;grid-template-columns:104px 1fr 30px;align-items:center;gap:9px;font-size:12.5px}
+  .vrow .tr{display:block;height:10px;background:var(--empty);border-radius:5px;overflow:hidden}
+  .vrow .fl{display:block;height:100%;border-radius:5px;transition:width .5s}
+  .vrow .ct{text-align:start;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .vrow .nm{color:var(--ink2)}
+  .rule3{border:1px dashed var(--line2);border-radius:11px;padding:9px 11px;font-size:12px;color:var(--ink2);margin-top:10px}
+  .rule3 b{color:var(--warn)}
+
+  .tblview{display:none}
+  .tblview.on{display:block}
+  .lnk{background:none;border:0;color:var(--gold);font:inherit;font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0}
+
+  .cta{margin-top:16px;background:linear-gradient(135deg,#131a2a,#10182a);border:1px solid var(--line);color:#fff;border-radius:16px;padding:20px;text-align:center}
+  .cta a{display:inline-block;margin-top:11px;background:var(--gold);color:#1a1300;padding:11px 26px;border-radius:999px;text-decoration:none;font-weight:800}
+  .foot{text-align:center;color:var(--mut);font-size:11.5px;padding:16px 0 0}
+</style>
+</head>
+<body>
+
+<div class="demobar">🧭 <b>غرفة عمليات فريق الـ13 وكيل</b> — كل الأرقام هنا <b>بيانات عرض توضيحي</b> لتجربة الواجهة، وتُستبدل بمخرجات الوكلاء الحقيقية عبر ملف بيانات واحد.</div>
+
+<div class="shell">
+
+  <!-- ================= الوكلاء ================= -->
+  <aside class="rail">
+    <div class="brand">
+      <div>
+        <div class="lg">◆ ALHAMRY OPS</div>
+        <div class="sm">فريق البحث والتسويق · السوق السعودي</div>
+      </div>
+    </div>
+    <div id="agents"></div>
+  </aside>
+
+  <!-- ================= المحتوى ================= -->
+  <main class="main">
+
+    <div class="top">
+      <div>
+        <h1>غرفة العمليات</h1>
+        <div class="sub" id="today">—</div>
+      </div>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="المدة">
+          <button data-range="7">٧ أيام</button>
+          <button data-range="30">٣٠ يوم</button>
+          <button data-range="90">٩٠ يوم</button>
+        </div>
+        <button class="icobtn" id="theme" title="تبديل الوضع الليلي/النهاري">◐</button>
+      </div>
+    </div>
+
+    <div class="filters" id="filters"></div>
+
+    <!-- KPIs -->
+    <div class="grid kpis" id="kpis"></div>
+
+    <!-- الخريطة + الترتيب -->
+    <div class="cols">
+      <div class="panel">
+        <div class="phead">
+          <div>
+            <h3>🗺️ خريطة الطلب — ١٣ منطقة إدارية</h3>
+            <div class="note" id="mapnote">اضغط منطقة لفلترة كل اللوحة · حدود المناطق من OpenStreetMap</div>
+          </div>
+          <div class="seg" role="group" aria-label="المؤشر">
+            <button data-metric="orders">الطلبات</button>
+            <button data-metric="sales">المبيعات</button>
+            <button data-metric="returns">الاسترجاع</button>
+            <button data-metric="cpa">التكلفة/طلب</button>
+          </div>
+        </div>
+        <div class="mapwrap">
+          <svg class="map" id="map" viewBox="0 0 1000 830" role="img" aria-label="خريطة مناطق السعودية"></svg>
+        </div>
+        <div class="legend">
+          <span id="legLow">منخفض</span>
+          <span class="ramp"><i style="background:var(--s1)"></i><i style="background:var(--s2)"></i><i style="background:var(--s3)"></i><i style="background:var(--s4)"></i><i style="background:var(--s5)"></i></span>
+          <span id="legHigh">مرتفع</span>
+          <span style="margin-inline-start:auto;display:flex;align-items:center;gap:6px">
+            <svg width="10" height="10"><circle cx="5" cy="5" r="4" class="city"/></svg> مدن رئيسية
+            <span style="opacity:.6">·</span>
+            <span style="color:var(--gold)">▬ ▬</span> مسار الشحن للموانئ
+            <button class="lnk" id="tblbtn" style="margin-inline-start:8px">عرض كجدول</button>
+          </span>
+        </div>
+        <div class="tblview" id="maptbl"></div>
+      </div>
+
+      <div class="panel">
+        <div class="phead"><div>
+          <h3>📊 ترتيب المناطق</h3>
+          <div class="note" id="ranknote">حسب المؤشر المختار</div>
+        </div></div>
+        <div class="rank" id="rank"></div>
+      </div>
+    </div>
+
+    <!-- المسار + بطاقات المنتجات -->
+    <div class="cols">
+      <div class="panel">
+        <div class="phead"><div>
+          <h3>🚦 مسار المنتج عبر الوكلاء</h3>
+          <div class="note">اضغط مرحلة لعرض منتجاتها · كل مرحلة بوابة لا تُتجاوز</div>
+        </div></div>
+        <div class="funnel" id="funnel"></div>
+      </div>
+
+      <div class="panel">
+        <div class="phead"><div>
+          <h3>📦 المنتجات في المسار</h3>
+          <div class="note" id="cardsnote">اضغط منتجاً لعرض بطاقة القرار وتوزيعه على الخريطة</div>
+        </div></div>
+        <div class="cards" id="cards"></div>
+      </div>
+    </div>
+
+    <!-- بطاقة القرار -->
+    <div class="cols">
+      <div class="panel" id="econ"></div>
+
+      <div class="panel">
+        <div class="phead"><div>
+          <h3>🎙️ صوت العميل — تصنيف التواصل</h3>
+          <div class="note">قاعدة التحويل: ٣ حالات من نفس الفئة على نفس المنتج ⟵ تذكرة تلقائية</div>
+        </div></div>
+        <div class="voc" id="voc"></div>
+        <div class="rule3" id="rule3"></div>
+      </div>
+    </div>
+
+    <!-- قرارات المدير -->
+    <div class="panel" style="margin-bottom:14px">
+      <div class="phead"><div>
+        <h3>🧾 تقرير المدير — بانتظار قرارك</h3>
+        <div class="note">لكل بند: توصية واحدة + الرقم المبرِّر + الحد المسموح. بنود «انتظار» يجب أن يكون لها تاريخ انتهاء.</div>
+      </div></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>المنتج</th><th>المنطقة</th><th>التوصية</th><th>الرقم المبرِّر</th><th>الحد المسموح</th><th>ماذا ينتظر</th><th>ينتهي الانتظار</th>
+          </tr></thead>
+          <tbody id="decisions"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="cta">
+      <div style="font-size:18px;font-weight:800">تبي غرفة عمليات زي هذي لفريقك؟</div>
+      <div style="color:#aab4cc;font-size:13.5px;margin-top:6px">نربطها بمخرجات وكلائك ومتجرك — كل رقم بمصدره، وكل بوابة بموافقتها</div>
+      <a href="https://wa.me/996545462770?text=السلام%20عليكم%2C%20شفت%20غرفة%20العمليات%20وأبي%20وحدة%20لفريقي" target="_blank" rel="noopener">تواصل معنا واتساب</a>
+    </div>
+
+    <div class="foot">
+      حدود المناطق: OpenStreetMap عبر <span dir="ltr">wjdanalharthi/GeoJSON-of-Saudi-Arabia-Regions</span> (ODbL) · الأرقام بيانات عرض توضيحي — استبدلها من <code>DEMO_DATA</code> في هذا الملف.
+    </div>
+  </main>
+</div>
+
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+/* ============================================================
+   خريطة السعودية — مسارات SVG مبنية من حدود OpenStreetMap
+   ============================================================ */
+const MAP = {"w":1000,"h":819,"regions":[{"code":"QAS","ar":"القصيم","en":"Qassim","d":"M316.0 347.1L323.4 348.3L325.3 353.4L334.7 357.3L358.0 379.1L358.3 387.3L372.7 387.6L378.9 400.9L389.4 401.0L395.0 395.6L402.7 397.2L409.5 386.1L404.0 385.1L407.1 383.0L405.0 380.3L409.9 377.0L404.5 377.3L405.5 372.7L412.1 371.3L421.1 361.4L432.2 362.5L434.3 355.9L445.6 354.5L449.5 348.8L464.7 344.4L468.6 340.3L480.9 345.7L484.6 335.6L477.5 330.6L471.0 316.5L465.4 282.5L466.6 270.0L468.9 268.0L480.5 265.7L489.4 271.6L488.5 252.5L469.6 226.6L454.7 217.7L445.3 221.1L442.7 218.4L443.5 210.3L434.2 218.9L433.5 241.1L419.3 242.3L417.7 245.6L413.1 246.5L412.1 251.8L415.6 255.0L409.7 257.1L409.8 261.8L405.1 270.1L400.1 274.4L396.6 272.2L385.9 277.3L381.5 288.2L371.4 293.2L369.2 298.1L368.2 295.3L365.3 295.7L359.9 302.1L361.7 307.6L359.8 312.0L355.5 310.7L349.7 315.1L348.5 322.4L343.9 321.7L343.5 326.2L336.9 334.3L325.5 334.4L316.0 347.1Z","cx":405.2,"cy":314.4},{"code":"RUH","ar":"الرياض","en":"Riyadh","d":"M350.9 431.7L351.4 436.1L357.1 440.7L369.9 477.6L397.7 481.9L400.2 484.6L398.6 496.1L400.4 499.4L422.1 501.1L423.7 530.3L419.5 538.4L418.1 561.2L431.2 581.3L449.3 601.6L443.7 626.8L452.8 640.1L470.5 656.7L490.4 668.8L507.0 670.9L587.9 663.6L624.5 656.4L651.3 430.1L649.4 420.5L643.0 409.7L612.7 383.3L611.7 316.5L609.6 306.2L592.0 299.1L581.1 287.4L569.7 288.4L552.7 277.4L538.6 275.8L527.2 265.0L506.1 256.2L493.4 233.1L489.4 237.9L481.1 240.7L488.5 252.5L489.4 271.6L480.5 265.7L468.9 268.0L466.4 271.3L465.5 288.1L471.0 316.5L477.5 330.6L484.6 335.6L480.9 345.7L468.6 340.3L464.7 344.4L449.5 348.8L445.6 354.5L434.3 355.9L432.2 362.5L421.1 361.4L412.1 371.3L405.5 372.7L404.5 377.3L409.9 377.0L405.0 380.3L407.1 383.0L404.0 385.1L409.5 386.1L402.7 397.2L395.0 395.6L389.4 401.0L378.9 400.9L372.7 387.6L358.3 387.3L352.1 402.4L350.9 431.7Z","cx":463.2,"cy":403.2},{"code":"TAB","ar":"تبوك","en":"Tabuk","d":"M0.0 211.0L2.5 214.8L6.5 208.8L7.9 213.0L13.3 210.1L13.2 212.4L21.5 211.6L21.0 209.7L30.9 213.6L28.2 216.0L40.7 227.8L48.4 245.5L58.6 256.3L58.3 262.1L69.6 273.3L72.4 281.5L79.4 288.2L91.3 314.0L101.2 318.4L98.3 327.8L112.3 338.5L120.4 355.7L126.5 362.1L127.7 378.9L122.5 381.2L126.1 382.8L125.6 387.3L133.4 396.2L138.9 387.8L152.4 390.5L155.4 386.8L153.0 384.6L164.0 384.5L164.9 379.4L161.2 379.2L156.8 372.4L156.0 363.1L152.3 358.4L149.5 343.8L155.2 336.3L140.9 328.2L139.9 319.5L130.5 308.2L133.2 302.9L125.0 302.8L126.0 296.9L120.6 290.6L121.9 282.0L111.9 276.4L113.0 265.6L103.8 262.6L104.1 252.5L114.1 244.6L128.0 245.3L130.1 249.0L147.1 240.8L153.0 246.2L158.9 247.2L158.3 259.4L167.3 276.0L180.1 278.8L193.5 276.0L227.5 278.3L236.9 272.3L247.2 256.1L256.3 261.5L257.9 259.2L249.4 228.3L227.4 214.9L231.5 206.3L244.7 192.5L246.9 186.2L224.8 176.9L190.1 151.8L173.1 154.4L174.4 147.3L181.4 137.8L158.8 127.8L138.9 112.0L104.9 118.9L89.0 141.6L71.2 154.5L18.3 145.5L9.7 181.6L11.1 188.8L4.1 207.5L0.0 211.0Z","cx":122.9,"cy":265.9},{"code":"MED","ar":"المدينة المنورة","en":"Madinah","d":"M102.7 256.2L105.2 264.1L113.0 265.6L111.9 276.4L121.9 282.0L120.6 290.6L126.0 296.9L125.0 302.8L133.2 302.9L130.5 308.2L139.9 319.5L140.9 328.2L155.3 336.7L149.5 344.8L152.5 359.1L156.0 363.1L156.8 372.4L161.2 379.2L164.5 378.5L164.9 383.1L153.3 384.3L155.4 386.8L152.1 390.6L138.6 388.0L133.4 396.3L138.9 409.2L144.7 411.2L144.4 408.7L147.9 408.4L156.1 416.2L159.2 416.4L160.3 413.1L159.4 415.4L162.1 415.9L159.4 416.5L184.5 435.4L188.3 448.0L191.2 446.3L193.6 454.1L206.5 452.8L219.8 467.6L230.8 466.9L232.4 473.1L253.3 468.1L255.1 474.6L251.6 485.5L260.7 490.8L260.2 500.6L262.2 502.0L268.8 502.1L277.2 495.2L288.8 498.2L294.9 488.9L314.8 471.5L326.0 465.8L326.2 462.6L317.5 455.4L338.6 443.3L341.1 438.1L340.1 426.9L351.5 426.7L352.1 402.4L356.4 395.8L358.8 380.6L348.2 369.8L333.9 356.7L325.3 353.4L323.4 348.3L313.0 346.6L307.8 342.5L296.7 342.8L291.2 350.3L281.4 349.3L278.9 356.9L258.0 352.1L255.4 344.7L255.5 312.3L251.9 305.9L252.0 299.4L241.2 282.0L234.0 280.7L233.8 275.4L226.2 278.4L168.3 276.8L158.4 260.0L158.9 247.2L153.0 246.2L146.4 240.7L130.1 249.0L128.0 245.3L114.1 244.6L102.7 256.2Z","cx":213.1,"cy":373.0},{"code":"MAK","ar":"مكة المكرمة","en":"Makkah","d":"M194.1 454.2L195.0 460.5L200.1 467.1L200.4 475.6L206.1 478.3L208.6 483.2L206.2 483.8L202.8 479.3L210.5 488.5L214.8 500.7L213.6 507.2L214.5 509.3L216.7 506.9L211.9 517.5L212.5 524.8L210.3 528.8L208.3 528.8L209.5 526.0L206.6 527.4L213.9 543.2L218.1 539.5L214.0 543.5L215.2 552.3L218.7 554.4L217.0 555.4L218.3 560.5L214.6 563.2L219.0 574.8L227.2 587.0L231.6 589.2L231.6 593.3L231.4 591.1L233.5 592.3L235.2 598.7L244.6 611.7L254.9 618.5L253.8 616.4L256.9 618.9L262.7 617.9L270.9 626.8L282.9 633.8L288.1 644.4L292.2 642.5L295.0 645.9L294.2 652.3L303.0 658.2L302.5 665.8L306.9 670.4L308.2 677.8L312.3 679.4L310.9 686.4L316.3 692.0L314.6 699.3L325.5 711.0L328.0 723.9L332.5 731.1L340.6 721.7L343.3 710.5L338.3 696.4L324.2 693.6L323.3 674.9L327.3 676.5L333.7 672.1L344.3 671.5L347.1 662.8L344.1 656.5L345.6 644.4L341.0 641.5L328.3 644.2L321.5 663.5L314.9 665.0L303.0 653.9L302.6 634.4L295.0 627.7L300.5 621.8L311.2 619.2L316.8 607.5L315.4 597.7L318.2 592.7L323.3 593.1L329.4 602.6L350.9 596.8L360.1 612.5L365.2 614.3L396.9 589.8L410.6 586.9L417.8 588.7L431.2 581.3L417.9 560.2L419.5 538.4L423.7 530.3L422.1 501.1L400.4 499.4L398.6 496.1L400.2 484.6L397.7 481.9L369.9 477.6L357.1 440.7L351.4 436.1L351.5 426.7L340.1 426.9L341.1 438.1L338.6 443.3L317.5 455.4L326.2 462.6L326.0 465.8L314.8 471.5L294.9 488.9L288.8 498.2L277.2 495.2L267.6 502.5L261.1 501.7L260.7 490.8L251.6 485.5L255.1 474.6L253.3 468.1L232.4 473.1L230.8 466.9L219.8 467.6L206.5 452.8L194.1 454.2Z","cx":290.2,"cy":567.6},{"code":"NOR","ar":"الحدود الشمالية","en":"Northern Region","d":"M157.3 48.5L167.1 51.6L166.1 54.6L169.9 55.4L171.7 67.4L189.0 63.5L200.1 66.2L209.0 61.7L219.9 61.6L229.6 65.7L240.7 64.5L245.7 67.6L251.1 65.8L261.8 73.8L271.5 69.1L290.0 73.7L305.3 72.4L309.5 74.1L310.1 85.5L314.1 81.9L324.6 81.4L334.7 85.0L331.7 92.6L340.0 95.3L351.1 107.4L342.2 110.8L340.3 116.7L332.9 116.2L328.6 121.5L323.5 122.9L324.7 136.4L329.0 135.4L333.6 156.7L324.5 158.5L321.3 170.6L347.8 174.1L354.4 170.3L374.6 176.6L379.6 183.5L389.5 186.6L391.2 195.9L404.2 199.0L412.1 193.7L420.3 193.5L421.6 197.3L422.4 193.0L439.9 193.4L442.9 198.0L442.7 218.4L445.7 221.4L450.9 217.8L460.4 220.1L472.1 228.9L481.1 240.7L491.1 236.6L501.1 222.4L504.7 208.9L511.1 205.7L506.9 193.8L496.8 182.3L501.4 175.3L525.3 175.2L527.8 170.6L544.2 159.2L480.9 153.8L356.2 54.2L325.6 40.6L276.9 10.7L219.5 0.0L210.2 8.0L160.8 21.3L160.7 40.5L157.3 48.5Z","cx":343.5,"cy":126.6},{"code":"JOU","ar":"الجوف","en":"Jawf","d":"M115.4 34.0L162.4 86.0L146.7 94.7L138.9 112.0L158.8 127.8L181.4 137.8L174.4 147.3L173.1 154.4L190.1 151.8L224.8 176.9L244.0 184.0L247.5 187.7L282.8 169.9L321.3 170.6L324.5 158.5L333.6 156.7L329.0 135.4L324.7 136.4L323.5 122.9L328.6 121.5L332.9 116.2L340.3 116.7L342.2 110.8L351.1 107.4L340.0 95.3L331.7 92.6L334.7 85.0L324.6 81.4L314.1 81.9L310.1 85.5L309.5 74.1L305.3 72.4L290.0 73.7L271.5 69.1L261.8 73.8L251.1 65.8L245.7 67.6L240.7 64.5L229.6 65.7L219.9 61.6L209.0 61.7L200.1 66.2L189.0 63.5L171.7 67.4L169.9 55.4L166.1 54.6L167.1 51.6L157.3 48.9L160.7 40.5L160.8 21.3L115.4 34.0Z","cx":245.9,"cy":97.9},{"code":"HAI","ar":"حائل","en":"Hail","d":"M227.2 213.9L249.4 228.3L257.9 253.5L256.7 261.6L247.2 256.1L233.3 277.8L234.3 280.9L241.2 282.0L252.0 299.4L251.9 305.9L255.5 312.3L256.3 349.6L262.6 354.2L278.9 356.9L280.9 349.6L291.2 350.3L298.3 342.1L307.8 342.5L316.0 347.1L326.5 333.8L336.9 334.3L343.5 326.2L343.9 321.7L348.5 322.4L349.7 315.1L361.1 310.2L359.9 302.1L365.3 295.7L368.2 295.3L369.2 298.1L371.4 293.2L381.5 288.2L385.9 277.3L396.6 272.2L400.1 274.4L405.1 270.1L409.8 261.8L409.7 257.1L415.6 255.0L412.1 251.8L413.1 246.5L417.7 245.6L419.3 242.3L433.5 241.1L434.2 218.9L443.5 210.3L441.4 202.6L442.9 198.0L439.9 193.4L422.4 193.0L421.6 197.3L420.3 193.5L412.1 193.7L404.5 199.0L394.5 194.9L391.6 196.2L388.9 186.1L379.6 183.5L374.6 176.6L354.8 170.4L347.8 174.1L325.2 170.5L289.1 169.6L282.5 170.0L247.5 187.7L227.2 213.9Z","cx":345.9,"cy":258.9},{"code":"BAH","ar":"الباحة","en":"Bahah","d":"M294.9 628.7L302.6 634.4L303.7 655.1L313.8 664.5L320.4 664.3L327.6 645.2L337.8 642.8L344.6 622.6L353.6 615.9L350.7 608.7L353.7 599.6L348.9 596.5L329.4 602.6L323.3 593.1L318.2 592.7L315.4 597.7L316.8 607.5L311.2 619.2L300.5 621.8L294.9 628.7Z","cx":323.1,"cy":622.1},{"code":"JAZ","ar":"جازان","en":"Jizan","d":"M332.5 731.1L341.5 744.5L347.0 746.1L367.1 765.2L369.8 787.3L369.2 778.2L378.5 787.9L377.0 794.2L385.7 802.0L387.9 818.6L397.5 819.1L397.2 814.2L405.3 812.6L405.7 805.1L410.7 806.6L409.6 803.2L412.2 798.7L406.1 792.3L408.8 790.9L408.1 786.4L411.3 787.3L407.2 783.5L409.1 774.6L415.5 772.2L410.4 768.0L411.0 763.1L414.8 760.4L396.8 743.5L396.6 736.1L388.7 739.9L384.7 752.7L382.0 753.8L371.5 741.2L360.1 740.6L356.4 733.6L348.4 733.2L349.3 721.6L347.4 719.1L341.3 719.7L332.5 731.1Z","cx":383.8,"cy":769.0},{"code":"ASR","ar":"عسير","en":"Asir","d":"M322.9 685.9L325.2 694.6L339.3 697.4L343.3 710.5L341.3 719.7L349.2 720.5L348.4 733.2L356.4 733.6L360.1 740.6L371.5 741.2L375.4 748.4L383.0 753.9L388.7 739.9L395.6 735.5L396.8 743.5L401.8 746.1L405.4 752.8L410.4 754.5L414.8 760.4L422.5 759.7L428.8 765.9L431.5 757.9L429.8 724.9L450.8 698.7L464.5 691.7L466.0 685.5L463.6 673.2L471.4 666.1L471.5 657.4L452.8 640.1L443.7 626.8L449.8 603.0L431.2 581.3L417.8 588.7L410.6 586.9L396.9 589.8L365.2 614.3L360.1 612.5L353.7 599.6L350.7 608.7L354.0 614.9L344.6 622.6L337.9 642.6L343.1 641.7L345.6 644.4L344.1 656.5L347.1 662.8L345.4 669.4L342.2 672.5L332.6 672.4L327.3 676.5L323.6 673.9L322.9 685.9Z","cx":384.4,"cy":682.7},{"code":"NAJ","ar":"نجران","en":"Najran","d":"M428.8 765.9L432.0 769.0L445.4 770.9L447.5 767.1L452.2 769.0L464.3 765.5L504.6 765.5L513.3 770.7L546.5 775.1L577.3 773.3L589.2 790.7L597.9 790.7L611.3 782.0L624.5 656.4L587.9 663.6L507.0 670.9L490.4 668.8L471.5 657.4L471.4 666.1L463.6 673.2L466.0 685.5L464.5 691.7L450.8 698.7L429.8 724.9L431.5 757.9L428.8 765.9Z","cx":496.1,"cy":732.2},{"code":"EAS","ar":"الشرقية","en":"Eastern Region","d":"M493.4 233.1L506.1 256.2L527.2 265.0L538.6 275.8L552.7 277.4L569.7 288.4L581.1 287.4L592.0 299.1L609.6 306.2L611.7 316.5L612.7 383.3L643.0 409.7L650.3 424.0L651.2 440.8L613.4 747.8L611.3 782.0L617.6 764.7L645.3 727.4L689.5 704.0L768.5 695.0L826.2 684.1L968.4 632.0L1000.0 528.0L978.3 491.2L974.9 495.2L853.7 479.2L806.8 417.4L806.7 410.8L799.9 407.1L791.9 408.7L794.1 401.7L802.7 394.2L797.7 391.5L793.5 397.7L783.5 399.6L775.4 395.6L769.9 385.3L767.8 386.6L765.9 378.7L758.0 369.8L754.8 351.1L749.4 345.4L750.3 350.6L738.8 335.9L737.9 333.5L742.5 336.5L743.9 340.2L744.0 337.8L736.6 326.2L736.4 320.9L731.4 320.6L733.0 309.5L738.8 318.0L739.4 310.7L742.8 308.7L742.8 300.7L740.1 298.3L740.7 292.8L737.7 297.6L737.8 294.2L736.3 296.3L733.3 293.6L732.4 290.4L735.6 292.1L735.3 288.6L732.4 290.4L730.8 282.7L739.2 286.8L729.2 275.7L715.8 269.1L717.2 266.4L713.2 265.2L717.3 262.9L711.6 263.2L713.7 253.3L710.3 259.5L707.1 252.2L717.3 252.4L707.0 250.1L705.5 253.4L709.3 257.9L708.7 261.8L704.5 260.5L704.9 263.8L701.3 261.5L703.5 257.9L700.6 260.7L699.2 258.6L699.1 251.1L694.3 251.9L696.0 246.8L689.8 246.9L697.9 244.1L698.8 245.9L694.5 238.4L690.0 240.1L682.5 235.7L679.4 238.6L680.0 235.5L676.8 236.7L678.3 233.0L676.7 233.8L675.3 229.4L673.8 230.9L675.0 225.4L674.8 229.0L677.8 226.8L676.6 230.5L678.8 225.4L672.0 218.5L674.2 216.1L666.1 211.6L666.7 205.9L660.9 198.6L662.3 194.8L658.8 196.1L661.7 194.3L660.3 190.3L657.0 188.2L622.6 188.8L611.2 164.0L568.5 158.8L561.9 161.0L544.2 159.2L527.8 170.6L525.3 175.2L501.9 175.2L496.8 181.5L506.9 193.8L511.1 205.2L504.7 208.9L501.1 222.4L493.4 233.1Z","cx":692.3,"cy":310.4}]};
+
+/* ============================================================
+   بيانات العرض التوضيحي (DEMO_DATA)
+   استبدل هذا الكائن بمخرجات الوكلاء الحقيقية — الواجهة تحسب الباقي.
+   ============================================================ */
+const REGION_BASE = {
+  RUH:{orders:412,aov:171,ret:5.4,cpa:38,cities:[["الرياض",470,398,1]]},
+  MAK:{orders:355,aov:163,ret:6.1,cpa:41,cities:[["جدة",250,556,1],["مكة",291,566,0]]},
+  EAS:{orders:288,aov:178,ret:4.8,cpa:36,cities:[["الدمام",690,300,1]]},
+  MED:{orders:141,aov:158,ret:6.6,cpa:44,cities:[["المدينة",228,381,0]]},
+  QAS:{orders:118,aov:154,ret:5.9,cpa:43,cities:[["بريدة",405,314,0]]},
+  ASR:{orders:112,aov:149,ret:7.2,cpa:47,cities:[["أبها",384,682,0]]},
+  JAZ:{orders:74,aov:141,ret:8.1,cpa:52,cities:[]},
+  TAB:{orders:58,aov:152,ret:7.4,cpa:49,cities:[]},
+  HAI:{orders:47,aov:147,ret:6.8,cpa:51,cities:[]},
+  NAJ:{orders:33,aov:145,ret:7.9,cpa:55,cities:[]},
+  JOU:{orders:31,aov:150,ret:7.1,cpa:54,cities:[]},
+  BAH:{orders:29,aov:143,ret:6.4,cpa:53,cities:[]},
+  NOR:{orders:22,aov:148,ret:7.6,cpa:58,cities:[]}
+};
+
+const STAGES = [
+  {id:"scout",  name:"الرصد",              agents:[1,2,3], icon:"🔍"},
+  {id:"eval",   name:"التقييم والامتثال",   agents:[4],     icon:"⚖️"},
+  {id:"supply", name:"التوريد والتسعير",    agents:[5],     icon:"🚢"},
+  {id:"econ",   name:"الجدوى",             agents:[6],     icon:"🧮"},
+  {id:"content",name:"الزوايا والمحتوى",    agents:[7],     icon:"✍️"},
+  {id:"media",  name:"إنتاج الوسائط",       agents:[8],     icon:"🎬"},
+  {id:"review", name:"مراجعة المطابقة",     agents:[9],     icon:"🛡️"},
+  {id:"store",  name:"المتجر والنشر",       agents:[10,11], icon:"🛒"},
+  {id:"live",   name:"مباع · بعد البيع",    agents:[12],    icon:"📮"}
+];
+
+const AGENTS = [
+  {n:1, name:"الإعلانات الأجنبية",   grp:"بحث",     st:"on",   out:"٣ مرشحات جديدة"},
+  {n:2, name:"الإعلانات المحلية",    grp:"بحث",     st:"on",   out:"رصد ٤ منافسين"},
+  {n:3, name:"السوق الصيني",         grp:"بحث",     st:"wait", out:"بانتظار رد مصنع"},
+  {n:4, name:"المقيّم · الامتثال",   grp:"بوابات",  st:"on",   out:"قرار على ٢"},
+  {n:5, name:"التوريد والشحن",       grp:"بوابات",  st:"wait", out:"HS code ناقص"},
+  {n:6, name:"محلل الجدوى",          grp:"بوابات",  st:"on",   out:"بطاقتا قرار"},
+  {n:7, name:"صانع المحتوى",         grp:"تنفيذ",   st:"on",   out:"٤ زوايا"},
+  {n:8, name:"مولّد الوسائط",        grp:"تنفيذ",   st:"blk",  out:"العينة لم تصل"},
+  {n:9, name:"مراجع المطابقة",       grp:"تنفيذ",   st:"on",   out:"رفض ١ · تعديل ٢"},
+  {n:10,name:"محلل المتجر",          grp:"تنفيذ",   st:"on",   out:"اختبار جارٍ"},
+  {n:11,name:"مصمم سلة",             grp:"تنفيذ",   st:"wait", out:"وعد توصيل غير مؤكد"},
+  {n:12,name:"صوت العميل",           grp:"تشغيل",   st:"on",   out:"٣ تذاكر مفتوحة"},
+  {n:13,name:"المدير",               grp:"تشغيل",   st:"on",   out:"٥ بنود لك"}
+];
+
+// كل منتج: مصفوفة التكلفة (كل بند برقمه)، سعر البيع، توزيع الطلب على المناطق
+const PRODUCTS = [
+  {id:"P-118", name:"مرطّب هواء محمول للسيارة", stage:"econ", src:"أجنبي", agent:6,
+   cost:{buy:14.8, intl:5.4, duty:1.2, vat:3.2, salla:1.1, gateway:2.4, lastmile:13.0, retpct:6.5},
+   price:129, orders:212, w:{RUH:.30,MAK:.22,EAS:.18,MED:.08,QAS:.06,ASR:.06,TAB:.03,JAZ:.03,HAI:.02,NAJ:.01,JOU:.005,BAH:.005},
+   dec:"go", why:["CPA الفعلي ٣٤ ر.س","الحد ٤٧ ر.س"], comp:{"مقاس/أبعاد":2,"جودة":1,"مدة شحن":4,"سعر":2,"تشغيل":1,"مطابقة الإعلان":1}},
+
+  {id:"P-124", name:"منظّم أدراج مطبخ قابل للطي", stage:"content", src:"محلي", agent:7,
+   cost:{buy:11.2, intl:6.8, duty:0.9, vat:2.7, salla:1.1, gateway:2.0, lastmile:14.5, retpct:8.0},
+   price:99, orders:143, w:{RUH:.26,MAK:.24,EAS:.14,MED:.10,QAS:.07,ASR:.07,JAZ:.05,TAB:.03,HAI:.02,BAH:.01,NAJ:.005,JOU:.005},
+   dec:"wait", why:["زاوية واحدة فقط جاهزة","الحد الأدنى زاويتان"], wait:"زاوية إعلانية ثانية", due:"2026-08-09",
+   comp:{"مقاس/أبعاد":5,"جودة":2,"مدة شحن":2,"سعر":3,"تشغيل":1,"مطابقة الإعلان":3}},
+
+  {id:"P-131", name:"جهاز عناية بالبشرة (تجميل)", stage:"eval", src:"صيني", agent:4,
+   cost:{buy:38.0, intl:9.1, duty:3.4, vat:7.6, salla:1.1, gateway:4.5, lastmile:15.0, retpct:11.0},
+   price:349, orders:0, w:{RUH:.34,MAK:.24,EAS:.16,MED:.08,QAS:.05,ASR:.05,TAB:.03,JAZ:.02,HAI:.02,NAJ:.005,JOU:.005},
+   dec:"stop", why:["فئة تحتاج تسجيل هيئة الغذاء والدواء","لا يُمرَّر قبل حسم الوضع النظامي"],
+   comp:{"مقاس/أبعاد":0,"جودة":0,"مدة شحن":0,"سعر":0,"تشغيل":0,"مطابقة الإعلان":0}},
+
+  {id:"P-140", name:"حقيبة تنظيم سفر ٧ قطع", stage:"live", src:"أجنبي", agent:12,
+   cost:{buy:19.6, intl:7.2, duty:1.6, vat:4.1, salla:1.1, gateway:2.9, lastmile:13.5, retpct:5.2},
+   price:159, orders:387, w:{RUH:.28,MAK:.23,EAS:.17,MED:.09,QAS:.06,ASR:.06,JAZ:.04,TAB:.04,HAI:.02,NAJ:.005,JOU:.005},
+   dec:"go", why:["هامش الوحدة ٩٤ ر.س","الاسترجاع ٥.٢٪ تحت الحد ٨٪"],
+   comp:{"مقاس/أبعاد":7,"جودة":2,"مدة شحن":6,"سعر":1,"تشغيل":0,"مطابقة الإعلان":4}},
+
+  {id:"P-146", name:"مصباح مكتب لاسلكي", stage:"supply", src:"صيني", agent:5,
+   cost:{buy:22.4, intl:8.6, duty:2.1, vat:4.9, salla:1.1, gateway:3.2, lastmile:14.0, retpct:7.0},
+   price:189, orders:0, w:{RUH:.31,MAK:.21,EAS:.19,MED:.08,QAS:.06,ASR:.05,TAB:.04,HAI:.03,JAZ:.02,NAJ:.005,JOU:.005},
+   dec:"wait", why:["بطارية ليثيوم — SABER مطلوب","لا طلب جملة قبل تثبيت HS code"], wait:"شهادة SABER + HS code", due:"2026-08-12",
+   comp:{"مقاس/أبعاد":1,"جودة":1,"مدة شحن":1,"سعر":0,"تشغيل":2,"مطابقة الإعلان":0}},
+
+  {id:"P-152", name:"مِبشرة مطبخ متعددة", stage:"media", src:"أجنبي", agent:8,
+   cost:{buy:9.8, intl:5.1, duty:0.8, vat:2.3, salla:1.1, gateway:1.8, lastmile:13.0, retpct:9.5},
+   price:89, orders:0, w:{RUH:.25,MAK:.25,EAS:.15,MED:.10,QAS:.07,ASR:.07,JAZ:.05,TAB:.03,HAI:.02,BAH:.01},
+   dec:"stop", why:["الهامش ٣١ ر.س < الحد الأدنى ٤٥ ر.س","السيناريو المتحفظ سالب"],
+   comp:{"مقاس/أبعاد":3,"جودة":4,"مدة شحن":1,"سعر":2,"تشغيل":0,"مطابقة الإعلان":1}},
+
+  {id:"P-158", name:"سجادة صلاة بذاكرة ضغط", stage:"store", src:"محلي", agent:11,
+   cost:{buy:26.5, intl:9.8, duty:2.4, vat:5.6, salla:1.1, gateway:3.6, lastmile:15.5, retpct:4.4},
+   price:219, orders:64, w:{RUH:.27,MAK:.26,EAS:.15,MED:.11,QAS:.06,ASR:.05,JAZ:.04,TAB:.03,HAI:.02,BAH:.01},
+   dec:"wait", why:["وعد التوصيل غير مؤكد من التوريد"], wait:"تأكيد مدة التوصيل", due:"2026-08-07",
+   comp:{"مقاس/أبعاد":2,"جودة":1,"مدة شحن":3,"سعر":1,"تشغيل":0,"مطابقة الإعلان":2}},
+
+  {id:"P-163", name:"مروحة رقبة قابلة للشحن", stage:"review", src:"صيني", agent:9,
+   cost:{buy:16.2, intl:6.4, duty:1.4, vat:3.5, salla:1.1, gateway:2.6, lastmile:13.5, retpct:7.8},
+   price:139, orders:0, w:{RUH:.24,MAK:.26,EAS:.16,JAZ:.08,ASR:.08,MED:.08,QAS:.05,NAJ:.02,TAB:.02,HAI:.01},
+   dec:"wait", why:["المادة تُظهر أداءً غير مختبر على العينة"], wait:"إعادة تصوير من العينة", due:"2026-08-04",
+   comp:{"مقاس/أبعاد":1,"جودة":2,"مدة شحن":1,"سعر":1,"تشغيل":3,"مطابقة الإعلان":5}},
+
+  {id:"P-171", name:"حامل جوال مغناطيسي للسيارة", stage:"scout", src:"أجنبي", agent:1,
+   cost:{buy:7.4, intl:4.2, duty:0.6, vat:1.8, salla:1.1, gateway:1.5, lastmile:12.5, retpct:6.0},
+   price:79, orders:0, w:{RUH:.29,MAK:.23,EAS:.18,MED:.08,QAS:.06,ASR:.06,TAB:.04,JAZ:.03,HAI:.02,NAJ:.01},
+   dec:"wait", why:["مكرر — رُصد قبل ٤١ يوماً","السبب الجديد: سعر المورد نزل ١٩٪"], wait:"تأكيد السعر الجديد", due:"2026-08-06",
+   comp:{"مقاس/أبعاد":0,"جودة":0,"مدة شحن":0,"سعر":0,"تشغيل":0,"مطابقة الإعلان":0}}
+];
+
+const QUOTA = {used:9, cap:12, dupes:5};
+
+/* ============================================================
+   الحسابات
+   ============================================================ */
+const AR = new Intl.NumberFormat('ar-SA-u-nu-latn',{maximumFractionDigits:0});
+const AR1 = new Intl.NumberFormat('ar-SA-u-nu-latn',{maximumFractionDigits:1});
+const fmt = n => AR.format(Math.round(n));
+const sar = n => fmt(n)+' ر.س';
+const sarC = n => n>=100000 ? AR1.format(n/1000)+' ألف ر.س' : sar(n); // مختصر للأرقام الكبيرة
+const shortNum = n => n>=1000 ? AR1.format(n/1000)+'k' : fmt(n);      // للتسميات الضيقة
+
+// معامل المدة — الطلبات تتراكم مع الوقت
+const rangeFactor = r => r===7 ? 0.24 : r===90 ? 2.85 : 1;
+
+function unit(p){
+  const c=p.cost;
+  const retCost = (c.buy+c.intl+c.lastmile) * (c.retpct/100);
+  const total = c.buy+c.intl+c.duty+c.vat+c.salla+c.gateway+c.lastmile+retCost;
+  const margin = p.price-total;
+  return {retCost, total, margin, pct: margin/p.price*100, cpaMax: margin};
+}
+function lines(p){
+  const c=p.cost, u=unit(p);
+  return [
+    ["شراء الوحدة", c.buy, "عرض مورد مباشر"],
+    ["شحن دولي", c.intl, "عرض شركة شحن"],
+    ["رسوم جمركية", c.duty, "HS code مثبّت"],
+    ["ضريبة القيمة المضافة", c.vat, "١٥٪ نظامية"],
+    ["رسوم سلة", c.salla, "جدول الرسوم"],
+    ["بوابة الدفع", c.gateway, "عقد البوابة"],
+    ["توصيل للعميل", c.lastmile, "عقد شركة التوصيل"],
+    ["استرجاع وتوالف ("+AR1.format(c.retpct)+"٪)", u.retCost, "بيانات ما بعد البيع"]
+  ];
+}
+
+const state = {metric:"orders", range:30, region:null, stage:null, product:"P-118", agent:null, hot:null, tbl:false};
+
+function activeProduct(){ return PRODUCTS.find(p=>p.id===state.product); }
+
+function metricFor(code){
+  const b=REGION_BASE[code], f=rangeFactor(state.range), p=activeProduct();
+  const share = p && p.w[code] ? p.w[code] : 0;
+  switch(state.metric){
+    case "orders":  return p ? (p.orders||120)*f*share : b.orders*f;
+    case "sales":   return p ? (p.orders||120)*f*share*p.price : b.orders*f*b.aov;
+    case "returns": return b.ret + (p ? (p.cost.retpct-6.5)*0.4 : 0);
+    case "cpa":     return b.cpa;
+  }
+}
+const METRIC_LABEL = {orders:"الطلبات",sales:"المبيعات",returns:"نسبة الاسترجاع",cpa:"التكلفة لكل طلب"};
+function metricText(v){
+  if(state.metric==="sales") return sar(v);
+  if(state.metric==="returns") return AR1.format(v)+'٪';
+  if(state.metric==="cpa") return sar(v);
+  return fmt(v)+' طلب';
+}
+
+// المنتجات بعد الفلترة
+function visibleProducts(){
+  return PRODUCTS.filter(p=>{
+    if(state.stage && p.stage!==state.stage) return false;
+    if(state.agent && p.agent!==state.agent) return false;
+    if(state.region && !(p.w[state.region] >= 0.05)) return false;
+    return true;
+  });
+}
+
+/* ============================================================
+   الرسم
+   ============================================================ */
+const $ = s=>document.querySelector(s);
+const tip = $("#tip");
+
+function showTip(html, ev){
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  let x = ev.clientX - r.width - 16; if(x < 8) x = ev.clientX + 16;
+  let y = ev.clientY - r.height - 12; if(y < 8) y = ev.clientY + 18;
+  tip.style.left = x+"px"; tip.style.top = y+"px";
+}
+const hideTip = ()=> tip.style.opacity = 0;
+
+/* ---- الخريطة ---- */
+// منفذا الدخول: جدة (البحر الأحمر، من الجنوب الغربي) والدمام (الخليج، من الشرق)
+const PORTS = [
+  {name:"ميناء جدة",   x:250, y:556, from:[-100, 820], ctrl:[-30, 660]},
+  {name:"ميناء الدمام", x:690, y:300, from:[1105, 150], ctrl:[930, 150]}
+];
+function buildMap(){
+  const svg = $("#map");
+  const PAD = 120;
+  svg.setAttribute("viewBox", `${-PAD} 0 ${MAP.w+PAD*2} ${MAP.h+16}`);
+  let arcs = "";
+  PORTS.forEach(pt=>{
+    const d = `M${pt.from[0]} ${pt.from[1]} Q ${pt.ctrl[0]} ${pt.ctrl[1]} ${pt.x} ${pt.y}`;
+    arcs += `<path class="arc" d="${d}"><title>مسار الشحن إلى ${pt.name}</title></path>
+             <circle class="ship" r="3.4">
+               <animateMotion dur="4.8s" repeatCount="indefinite" path="${d}"/>
+             </circle>
+             <text class="reg-val" x="${pt.from[0]+ (pt.from[0]<0?46:-46)}" y="${pt.from[1]+14}">${pt.name}</text>`;
+  });
+  svg.innerHTML =
+    MAP.regions.map(r=>`<path class="reg" id="rg-${r.code}" data-code="${r.code}" d="${r.d}"><title>${r.ar}</title></path>`).join("") +
+    `<g id="arcs">${arcs}</g>` +
+    MAP.regions.map(r=>{
+      const b = REGION_BASE[r.code];
+      const dots = (b.cities||[]).map(([nm,x,y,big])=>
+        `<g><circle class="pulse" cx="${x}" cy="${y}" r="6"><animate attributeName="r" values="5;24" dur="2.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="${big?.6:.35};0" dur="2.8s" repeatCount="indefinite"/></circle>
+          <circle class="city" cx="${x}" cy="${y}" r="${big?4.4:3.2}"/></g>`).join("");
+      return dots;
+    }).join("") +
+    MAP.regions.map(r=>
+      `<text class="reg-lab" x="${r.cx}" y="${r.cy}">${r.ar}</text>
+       <text class="reg-val num" id="rv-${r.code}" x="${r.cx}" y="${r.cy+15}"></text>`).join("");
+
+  svg.querySelectorAll(".reg").forEach(el=>{
+    const code = el.dataset.code;
+    el.addEventListener("mousemove", ev=>{
+      const b = REGION_BASE[code], f = rangeFactor(state.range), p = activeProduct();
+      const sh = p && p.w[code] ? (p.w[code]*100).toFixed(1)+'٪' : "—";
+      showTip(`<h4>${MAP.regions.find(r=>r.code===code).ar}</h4>
+        <div class="r"><span>${METRIC_LABEL[state.metric]}</span><b>${metricText(metricFor(code))}</b></div>
+        <div class="r"><span>متوسط الطلب</span><b>${sar(b.aov)}</b></div>
+        <div class="r"><span>الاسترجاع</span><b>${AR1.format(b.ret)}٪</b></div>
+        <div class="r"><span>حصة المنتج المحدد</span><b>${sh}</b></div>
+        <div class="r" style="margin-top:6px;color:var(--mut);font-size:11px">اضغط للفلترة</div>`, ev);
+      state.hot = code; paintRankHot();
+    });
+    el.addEventListener("mouseleave", ()=>{ hideTip(); state.hot=null; paintRankHot(); });
+    el.addEventListener("click", ()=>{ state.region = state.region===code ? null : code; render(); });
+  });
+}
+
+function rampColor(t){ // t: 0..1
+  const steps = ["--s1","--s2","--s3","--s4","--s5"];
+  const i = Math.min(4, Math.floor(t*5));
+  return `var(${steps[i]})`;
+}
+function paintMap(){
+  const vals = MAP.regions.map(r=>metricFor(r.code));
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  MAP.regions.forEach((r,i)=>{
+    const el = document.getElementById("rg-"+r.code);
+    const t = hi>lo ? (vals[i]-lo)/(hi-lo) : 0.5;
+    el.style.fill = vals[i] <= 0 ? "var(--empty)" : rampColor(t);
+    el.classList.toggle("sel", state.region===r.code);
+    el.classList.toggle("dim", !!state.region && state.region!==r.code);
+    const tx = document.getElementById("rv-"+r.code);
+    tx.textContent = vals[i]>0 ? (state.metric==="returns" ? AR1.format(vals[i])+"٪" : shortNum(vals[i])) : "";
+  });
+  $("#legLow").textContent = "منخفض · "+metricText(lo);
+  $("#legHigh").textContent = metricText(hi)+" · مرتفع";
+  const p = activeProduct();
+  $("#mapnote").textContent = p ? `التوزيع لـ«${p.name}» — اضغط منطقة لفلترة كل اللوحة` : "اضغط منطقة لفلترة كل اللوحة";
+  // جدول بديل (وصول)
+  $("#maptbl").innerHTML = `<table style="margin-top:10px"><thead><tr><th>المنطقة</th><th>${METRIC_LABEL[state.metric]}</th><th>متوسط الطلب</th><th>الاسترجاع</th></tr></thead><tbody>`+
+    MAP.regions.map((r,i)=>`<tr><td><b>${r.ar}</b></td><td>${metricText(vals[i])}</td><td>${sar(REGION_BASE[r.code].aov)}</td><td>${AR1.format(REGION_BASE[r.code].ret)}٪</td></tr>`).join("")+
+    `</tbody></table>`;
+}
+
+/* ---- ترتيب المناطق ---- */
+function paintRank(){
+  const rows = MAP.regions.map(r=>({code:r.code, ar:r.ar, v:metricFor(r.code)}))
+    .sort((a,b)=> state.metric==="cpa"||state.metric==="returns" ? a.v-b.v : b.v-a.v);
+  const hi = Math.max(...rows.map(r=>r.v)) || 1;
+  $("#ranknote").textContent = (state.metric==="cpa"||state.metric==="returns" ? "الأفضل أولاً · " : "الأعلى أولاً · ")+METRIC_LABEL[state.metric];
+  $("#rank").innerHTML = rows.map(r=>`
+    <div class="rrow ${state.hot===r.code?'hot':''}" data-code="${r.code}">
+      <span class="nm">${r.ar}</span>
+      <span class="tr"><span class="fl" style="width:${Math.max(2,r.v/hi*100)}%;background:${rampColor(r.v/hi*0.999)}"></span></span>
+      <span class="vv">${state.metric==="returns"?AR1.format(r.v)+"٪":shortNum(r.v)}</span>
+    </div>`).join("");
+  $("#rank").querySelectorAll(".rrow").forEach(el=>{
+    el.onclick = ()=>{ state.region = state.region===el.dataset.code?null:el.dataset.code; render(); };
+    el.onmouseenter = ()=>{ state.hot = el.dataset.code; paintRankHot(); };
+    el.onmouseleave = ()=>{ state.hot = null; paintRankHot(); };
+  });
+}
+function paintRankHot(){
+  document.querySelectorAll(".rrow").forEach(el=> el.classList.toggle("hot", el.dataset.code===state.hot));
+  MAP.regions.forEach(r=>{
+    const el = document.getElementById("rg-"+r.code);
+    if(el) el.style.strokeWidth = (state.hot===r.code) ? 2.6 : (state.region===r.code ? 2.6 : 1.4);
+    if(el && state.hot===r.code) el.style.stroke = "var(--gold)";
+    else if(el) el.style.stroke = state.region===r.code ? "var(--gold)" : "var(--surf)";
+  });
+}
+
+/* ---- KPIs ---- */
+function paintKPIs(){
+  const vis = visibleProducts();
+  const f = rangeFactor(state.range);
+  const live = PRODUCTS.filter(p=>p.orders>0);
+  const scope = state.region
+      ? live.map(p=>({p, o:(p.orders*f)*(p.w[state.region]||0)}))
+      : live.map(p=>({p, o:p.orders*f}));
+  const orders = scope.reduce((s,x)=>s+x.o,0);
+  const sales  = scope.reduce((s,x)=>s+x.o*x.p.price,0);
+  const profit = scope.reduce((s,x)=>s+x.o*unit(x.p).margin,0);
+  const waits  = vis.filter(p=>p.dec==="wait").length;
+  const avgRet = scope.length ? scope.reduce((s,x)=>s+x.p.cost.retpct*x.o,0)/(orders||1) : 0;
+  const cpaMax = vis.length ? vis.reduce((s,p)=>s+unit(p).cpaMax,0)/vis.length : 0;
+
+  const K = [
+    {k:"بانتظار قرارك", v:fmt(waits), t:`من ${fmt(vis.length)} منتج في النطاق`, cls:waits?"st-warn":"st-good", ic:waits?"⚠":"✓"},
+    {k:"دخل المسار هذا الأسبوع", v:`${fmt(QUOTA.used)}<small> / ${fmt(QUOTA.cap)}</small>`, t:`أُوقف ${fmt(QUOTA.dupes)} مكرر قبل الدخول`, cls:"st-good", ic:"✓"},
+    {k:"الطلبات", v:fmt(orders), t:state.region?`في ${MAP.regions.find(r=>r.code===state.region).ar}`:"كل المناطق"},
+    {k:"المبيعات", v:sarC(sales), t:`ربح الوحدات ${sarC(profit)}`, cls:"st-good", ic:"▲"},
+    {k:"نسبة الاسترجاع", v:AR1.format(avgRet||0)+"٪", t:avgRet>8?"فوق الحد ٨٪":"تحت الحد ٨٪", cls:avgRet>8?"st-crit":"st-good", ic:avgRet>8?"✕":"✓"},
+    {k:"متوسط أقصى CPA مسموح", v:sar(cpaMax), t:"معيار إيقاف الاختبار"}
+  ];
+  $("#kpis").innerHTML = K.map(x=>`
+    <div class="kpi">
+      <div class="k">${x.k}</div>
+      <div class="v num">${x.v}</div>
+      <div class="t ${x.cls||""}">${x.ic?`<span>${x.ic}</span>`:""}${x.t}</div>
+    </div>`).join("");
+}
+
+/* ---- المسار ---- */
+function paintFunnel(){
+  const inScope = p => !state.region || (p.w[state.region]>=0.05);
+  const idx = id => STAGES.findIndex(s=>s.id===id);
+  // «وصل إلى هذه المرحلة» = تراكمي (قمع حقيقي) · «هنا الآن» = العدد الواقف عند البوابة
+  const reached = STAGES.map((s,i)=>PRODUCTS.filter(p=>inScope(p) && idx(p.stage)>=i).length);
+  const here    = STAGES.map(s=>PRODUCTS.filter(p=>inScope(p) && p.stage===s.id).length);
+  const hi = Math.max(...reached,1);
+  const ord = ["--s5","--s4","--s3","--s2","--s1"];
+  $("#funnel").innerHTML = STAGES.map((s,i)=>`
+    <div class="fst" data-stage="${s.id}" role="button" aria-pressed="${state.stage===s.id}"
+         title="وصل إلى ${s.name}: ${fmt(reached[i])} · واقف هنا الآن: ${fmt(here[i])}">
+      <span class="lb">${s.icon} ${s.name} <i>و${s.agents.join("،")}</i></span>
+      <span class="bar"><span style="width:${Math.max(3,reached[i]/hi*100)}%;background:var(${ord[Math.min(4,Math.floor(i/2))]})"></span></span>
+      <span class="ct">${fmt(reached[i])}${here[i]?`<i style="font-style:normal;color:var(--gold)"> ·${fmt(here[i])}</i>`:""}</span>
+    </div>`).join("");
+  $("#funnel").querySelectorAll(".fst").forEach(el=>{
+    el.onclick = ()=>{ state.stage = state.stage===el.dataset.stage?null:el.dataset.stage; state.agent=null; render(); };
+  });
+}
+
+/* ---- البطاقات ---- */
+const DEC = {go:{c:"t-go",ic:"✓",t:"مضي"}, wait:{c:"t-wait",ic:"⏳",t:"انتظار"}, stop:{c:"t-stop",ic:"✕",t:"إيقاف"}};
+function paintCards(){
+  const vis = visibleProducts();
+  $("#cardsnote").textContent = vis.length ? `${fmt(vis.length)} منتج في النطاق الحالي` : "لا منتجات في هذا النطاق";
+  $("#cards").innerHTML = vis.map(p=>{
+    const u = unit(p), d = DEC[p.dec];
+    return `<div class="card ${state.product===p.id?'sel':''}" data-id="${p.id}">
+      <div class="nm">${p.name}</div>
+      <div class="mt"><span>${p.id}</span><span>·</span><span>${p.src}</span><span>·</span><span>و${p.agent}</span></div>
+      <div class="fx">
+        <span class="tag ${d.c}">${d.ic} ${d.t}</span>
+        <span class="mg ${u.margin>0?'st-good':'st-crit'}">هامش ${sar(u.margin)}</span>
+      </div>
+    </div>`;
+  }).join("") || `<div style="color:var(--mut);font-size:12.5px">جرّب إزالة أحد الفلاتر بالأعلى.</div>`;
+  $("#cards").querySelectorAll(".card").forEach(el=>{
+    el.onclick = ()=>{ state.product = el.dataset.id; render(); };
+  });
+}
+
+/* ---- بطاقة القرار ---- */
+function paintEcon(){
+  const p = activeProduct();
+  if(!p){ $("#econ").innerHTML = ""; return; }
+  const u = unit(p), L = lines(p), d = DEC[p.dec];
+  const cons = u.margin*0.62, mid = u.margin, opt = u.margin*1.34;
+  const shades = ["--s1","--s2","--s3","--s4","--s5","--s4","--s3","--s2"];
+  $("#econ").innerHTML = `
+    <div class="phead"><div>
+      <h3>🧮 بطاقة القرار — ${p.name}</h3>
+      <div class="note">مخرج محلل الجدوى · كل بند برقمه ومصدره · القرار يُبنى على السيناريو المتحفظ</div>
+    </div><span class="tag ${d.c}">${d.ic} ${d.t}</span></div>
+
+    <div class="econ-h">
+      <span class="big num ${u.margin>0?'st-good':'st-crit'}">${sar(u.margin)}</span>
+      <span style="color:var(--mut);font-size:12.5px">هامش الوحدة (${AR1.format(u.pct)}٪) · سعر البيع ${sar(p.price)} · التكلفة الكاملة ${sar(u.total)}</span>
+    </div>
+
+    <div class="costbar">${L.map((l,i)=>`<i style="width:${l[1]/u.total*100}%;background:var(${shades[i]})" title="${l[0]}"></i>`).join("")}
+      <i style="width:${Math.max(0,u.margin)/p.price*100*0}%"></i></div>
+
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>بند التكلفة</th><th>ر.س</th><th>المصدر</th></tr></thead>
+      <tbody>${L.map(l=>`<tr><td>${l[0]}</td><td><b>${AR1.format(l[1])}</b></td><td style="color:var(--mut)">${l[2]}</td></tr>`).join("")}
+      <tr><td><b>التكلفة الكاملة للوحدة</b></td><td><b>${AR1.format(u.total)}</b></td><td style="color:var(--mut)">مجموع محسوب</td></tr></tbody>
+    </table></div>
+
+    <div class="scen">
+      <div class="sc base"><div class="l">🛡️ متحفظ <span style="color:var(--gold)">· القرار</span></div><div class="n ${cons>0?'st-good':'st-crit'}">${sar(cons)}</div></div>
+      <div class="sc"><div class="l">متوسط</div><div class="n">${sar(mid)}</div></div>
+      <div class="sc"><div class="l">متفائل</div><div class="n">${sar(opt)}</div></div>
+    </div>
+
+    <div class="scen" style="grid-template-columns:1fr 1fr">
+      <div class="sc"><div class="l">أقصى CPA مسموح (تعادل)</div><div class="n">${sar(u.cpaMax)}</div></div>
+      <div class="sc"><div class="l">ميزانية الاختبار</div><div class="n">${sar(Math.round(u.cpaMax*12/50)*50)}</div></div>
+    </div>
+
+    <div class="stoprule">🛑 <b>حد الإيقاف:</b> أوقف إذا تجاوز CPA <b>${sar(u.cpaMax)}</b> بعد صرف <b>${sar(Math.round(u.cpaMax*12/50)*50)}</b> بدون <b>${fmt(6)}</b> طلبات.</div>
+    <div style="color:var(--mut);font-size:11.5px;margin-top:8px">السبب المسجّل: ${(p.why||[]).join(" · ")}</div>`;
+}
+
+/* ---- صوت العميل ---- */
+function paintVOC(){
+  const p = activeProduct();
+  const cats = Object.keys(p.comp);
+  const hi = Math.max(...Object.values(p.comp),1);
+  $("#voc").innerHTML = cats.map(c=>{
+    const v = p.comp[c], over = v>=3;
+    return `<div class="vrow">
+      <span class="nm">${c}</span>
+      <span class="tr"><span class="fl" style="width:${Math.max(2,v/hi*100)}%;background:${over?'var(--warn)':'var(--s3)'}"></span></span>
+      <span class="ct">${fmt(v)}</span>
+    </div>`;
+  }).join("");
+  const trig = cats.filter(c=>p.comp[c]>=3);
+  const ROUTE = {"مقاس/أبعاد":"مصمم المتجر (١١) + مولّد الصور (٨)","مطابقة الإعلان":"مصمم المتجر (١١) + مولّد الصور (٨)",
+                 "جودة":"وكيل التوريد (٥) — مواجهة المصنع","مدة شحن":"وكيل التوريد (٥) — مخزون محلي","سعر":"محلل الجدوى (٦) — إعادة تسعير","تشغيل":"صانع المحتوى (٧) — شرح الاستخدام"};
+  $("#rule3").innerHTML = trig.length
+    ? `⚠ <b>تجاوز قاعدة الـ٣:</b> ` + trig.map(c=>`«${c}» (${fmt(p.comp[c])}) ⟵ ${ROUTE[c]}`).join(" · ")
+    : `✓ لا فئة تجاوزت ٣ حالات على «${p.name}» — لا تذاكر تلقائية.`;
+}
+
+/* ---- قرارات المدير ---- */
+function paintDecisions(){
+  const vis = visibleProducts();
+  const today = new Date("2026-08-05");
+  $("#decisions").innerHTML = vis.map(p=>{
+    const d = DEC[p.dec], u = unit(p);
+    const top = Object.entries(p.w).sort((a,b)=>b[1]-a[1])[0];
+    const rn = MAP.regions.find(r=>r.code===top[0]);
+    const late = p.due && new Date(p.due) < today;
+    return `<tr data-id="${p.id}">
+      <td><b>${p.name}</b><div style="color:var(--mut);font-size:11px">${p.id}</div></td>
+      <td>${rn?rn.ar:"—"} <span style="color:var(--mut)">${(top[1]*100).toFixed(0)}٪</span></td>
+      <td><span class="tag ${d.c}">${d.ic} ${d.t}</span></td>
+      <td>${p.why?p.why[0]:"—"}</td>
+      <td>${p.why&&p.why[1]?p.why[1]:"هامش ≥ "+sar(45)}</td>
+      <td>${p.wait||"—"}</td>
+      <td class="${late?'late':''}">${p.due? new Date(p.due).toLocaleDateString("ar-u-nu-latn-ca-gregory",{day:"numeric",month:"short"}) + (late?" · متأخر":"") : "—"}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7" style="color:var(--mut)">لا بنود في هذا النطاق.</td></tr>`;
+  $("#decisions").querySelectorAll("tr[data-id]").forEach(tr=>{
+    tr.onclick = ()=>{ state.product = tr.dataset.id; render(); };
+  });
+}
+
+/* ---- الوكلاء ---- */
+function paintAgents(){
+  const groups = ["بحث","بوابات","تنفيذ","تشغيل"];
+  const DOT = {on:"d-on", wait:"d-wait", blk:"d-blk"};
+  $("#agents").innerHTML = groups.map(g=>`
+    <h4>${g}</h4>` + AGENTS.filter(a=>a.grp===g).map(a=>{
+      const n = PRODUCTS.filter(p=>p.agent===a.n && (!state.region || p.w[state.region]>=0.05)).length;
+      return `<div class="ag" data-n="${a.n}" role="button" aria-pressed="${state.agent===a.n}">
+        <span class="dot ${DOT[a.st]}"></span>
+        <span class="n num">${a.n}</span>
+        <span class="tx"><span class="t1">${a.name}</span><span class="t2">${a.out}</span></span>
+        ${n?`<span class="badge">${fmt(n)}</span>`:""}
+      </div>`;
+    }).join("")).join("");
+  $("#agents").querySelectorAll(".ag").forEach(el=>{
+    el.onclick = ()=>{
+      const n = +el.dataset.n;
+      state.agent = state.agent===n ? null : n;
+      const st = STAGES.find(s=>s.agents.includes(n));
+      state.stage = state.agent && st ? st.id : null;
+      render();
+    };
+  });
+}
+
+/* ---- شريط الفلاتر ---- */
+function paintFilters(){
+  const F=[];
+  if(state.region){ const r=MAP.regions.find(x=>x.code===state.region); F.push(["region",`المنطقة: ${r.ar}`]); }
+  if(state.stage){ F.push(["stage",`المرحلة: ${STAGES.find(s=>s.id===state.stage).name}`]); }
+  if(state.agent){ F.push(["agent",`الوكيل: ${AGENTS.find(a=>a.n===state.agent).name}`]); }
+  const p = activeProduct(); if(p) F.push(["product",`المنتج: ${p.name}`]);
+  $("#filters").innerHTML = (F.length? F.map(([k,t])=>`<span class="chip">${t}<button data-clear="${k}" aria-label="إزالة">✕</button></span>`).join("")
+      : `<span class="chip ghost">لا فلاتر — اضغط منطقة أو مرحلة أو وكيلاً للتفاعل</span>`)
+    + (F.length>1?`<button class="lnk" id="clearall" style="margin-inline-start:6px">مسح الكل</button>`:"");
+  $("#filters").querySelectorAll("[data-clear]").forEach(b=>{
+    b.onclick = ()=>{ const k=b.dataset.clear;
+      if(k==="region") state.region=null;
+      if(k==="stage") state.stage=null;
+      if(k==="agent") state.agent=null;
+      if(k==="product") state.product=null;
+      render(); };
+  });
+  const ca = $("#clearall"); if(ca) ca.onclick = ()=>{ state.region=state.stage=state.agent=null; state.product=null; render(); };
+}
+
+/* ---- التحكم العلوي ---- */
+function bindTop(){
+  document.querySelectorAll("[data-range]").forEach(b=>{
+    b.onclick = ()=>{ state.range = +b.dataset.range; render(); };
+  });
+  document.querySelectorAll("[data-metric]").forEach(b=>{
+    b.onclick = ()=>{ state.metric = b.dataset.metric; render(); };
+  });
+  $("#tblbtn").onclick = ()=>{ state.tbl=!state.tbl; $("#maptbl").classList.toggle("on",state.tbl); $("#tblbtn").textContent = state.tbl?"إخفاء الجدول":"عرض كجدول"; };
+  $("#theme").onclick = ()=>{
+    const cur = document.documentElement.getAttribute("data-theme")==="light" ? "dark":"light";
+    document.documentElement.setAttribute("data-theme",cur);
+  };
+}
+function paintToggles(){
+  document.querySelectorAll("[data-range]").forEach(b=> b.setAttribute("aria-pressed", +b.dataset.range===state.range));
+  document.querySelectorAll("[data-metric]").forEach(b=> b.setAttribute("aria-pressed", b.dataset.metric===state.metric));
+}
+
+/* ---- التشغيل ---- */
+function render(){
+  paintToggles(); paintFilters(); paintKPIs();
+  paintMap(); paintRank(); paintRankHot();
+  paintFunnel(); paintCards();
+  if(activeProduct()){ paintEcon(); paintVOC(); }
+  else { $("#econ").innerHTML = `<div class="phead"><div><h3>🧮 بطاقة القرار</h3><div class="note">اختر منتجاً من البطاقات أو الجدول لعرض حسبة الجدوى</div></div></div>`;
+         $("#voc").innerHTML = `<div style="color:var(--mut);font-size:12.5px">اختر منتجاً لعرض تصنيف تواصل عملائه.</div>`; $("#rule3").innerHTML=""; }
+  paintDecisions(); paintAgents();
+}
+
+$("#today").textContent = new Date().toLocaleDateString("ar-u-nu-latn-ca-gregory",{weekday:"long",day:"numeric",month:"long",year:"numeric"})
+  + " · الحصة الأسبوعية " + fmt(QUOTA.used) + " من " + fmt(QUOTA.cap);
+buildMap(); bindTop(); render();
+</script>
+</body>
+</html>
