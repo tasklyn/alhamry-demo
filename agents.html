@@ -33,9 +33,19 @@
   .num{font-variant-numeric:tabular-nums}
 
   /* ---------- shell ---------- */
-  .demobar{background:#1d2733;color:#fff;text-align:center;font-size:12.5px;padding:7px 14px}
-  .demobar b{color:#ffd27a}
-  :root[data-theme="light"] .demobar{background:#1d2733;color:#fff}
+  /* ---------- شريط مصدر البيانات ---------- */
+  .databar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+           font-size:12.5px;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--surf)}
+  .databar.demo{background:rgba(250,178,25,.10);border-bottom-color:rgba(250,178,25,.35)}
+  .databar.live{background:rgba(12,163,12,.10);border-bottom-color:rgba(12,163,12,.35)}
+  .databar b{color:var(--ink)}
+  .dbtns{display:flex;gap:12px;flex-wrap:wrap}
+  .dataerr{display:none;background:rgba(208,59,59,.10);border-bottom:1px solid rgba(208,59,59,.4);
+           padding:11px 18px;font-size:12.5px;color:var(--ink2)}
+  .dataerr b{color:var(--crit)}
+  .dropnote{position:fixed;inset:0;z-index:80;display:none;place-items:center;background:rgba(0,0,0,.6);
+            color:#fff;font-size:20px;font-weight:800;border:3px dashed var(--gold);pointer-events:none}
+  body.dragging .dropnote{display:grid}
 
   .shell{display:grid;grid-template-columns:264px 1fr;min-height:100vh}
   .rail{background:var(--surf);border-inline-start:1px solid var(--line);padding:16px 12px;position:sticky;top:0;height:100vh;overflow-y:auto}
@@ -186,7 +196,17 @@
   .ag{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:11px;cursor:pointer;border:1px solid transparent;margin-bottom:2px}
   .ag:hover{background:var(--surf2)}
   .ag[aria-pressed="true"]{background:var(--gold-soft);border-color:var(--gold)}
-  .ag .n{width:21px;height:21px;border-radius:7px;background:var(--surf2);border:1px solid var(--line);display:grid;place-items:center;font-size:10.5px;color:var(--mut);flex-shrink:0;font-variant-numeric:tabular-nums}
+  .avwrap{position:relative;flex-shrink:0;line-height:0}
+  .av{display:block;filter:drop-shadow(0 3px 5px rgba(0,0,0,.4));transition:transform .25s cubic-bezier(.34,1.4,.64,1)}
+  .ag:hover .av{transform:translateY(-2px) rotate(-4deg) scale(1.07)}
+  .ag[aria-pressed="true"] .av{transform:translateY(-1px) scale(1.05)}
+  .avwrap .n{position:absolute;inset-inline-end:-3px;bottom:-3px;width:16px;height:16px;border-radius:6px;
+             background:var(--surf);border:1px solid var(--line2);display:grid;place-items:center;
+             font-size:9.5px;color:var(--ink2);font-variant-numeric:tabular-nums;line-height:1}
+  .agbig{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .agbig .tx .t1{font-size:15px;font-weight:800}
+  .agbig .tx .t2{font-size:12px;color:var(--mut)}
+  @media(prefers-reduced-motion:reduce){.av{transition:none}.ag:hover .av{transform:none}}
   .ag .tx{flex:1;min-width:0}
   .ag .tx .t1{display:block;font-size:12.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ag .tx .t2{display:block;font-size:10.5px;line-height:1.3;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -254,7 +274,10 @@
 </head>
 <body>
 
-<div class="demobar">🧭 <b>غرفة عمليات فريق الـ13 وكيل</b> — كل الأرقام هنا <b>بيانات عرض توضيحي</b> لتجربة الواجهة، وتُستبدل بمخرجات الوكلاء الحقيقية عبر ملف بيانات واحد.</div>
+<div class="databar demo" id="databar"></div>
+<div class="dataerr" id="dataerr"></div>
+<input type="file" id="file" accept=".json,application/json" hidden />
+<div class="dropnote">أفلت ملف البيانات هنا</div>
 
 <div class="shell">
 
@@ -426,7 +449,7 @@ const MAP = {"w":1000,"h":819,"regions":[{"code":"QAS","ar":"القصيم","en":
    بيانات العرض التوضيحي (DEMO_DATA)
    استبدل هذا الكائن بمخرجات الوكلاء الحقيقية — الواجهة تحسب الباقي.
    ============================================================ */
-const REGION_BASE = {
+const REGION_BASE_DEMO = {
   RUH:{orders:412,aov:171,ret:5.4,cpa:38,cities:[["الرياض",470,398,1]]},
   MAK:{orders:355,aov:163,ret:6.1,cpa:41,cities:[["جدة",250,556,1],["مكة",291,566,0]]},
   EAS:{orders:288,aov:178,ret:4.8,cpa:36,cities:[["الدمام",690,300,1]]},
@@ -454,7 +477,7 @@ const STAGES = [
   {id:"live",   name:"مباع · بعد البيع",    agents:[12],    icon:"📮"}
 ];
 
-const AGENTS = [
+const AGENTS_DEMO = [
   {n:1, name:"الإعلانات الأجنبية",   grp:"بحث",     st:"on",   out:"٣ مرشحات جديدة"},
   {n:2, name:"الإعلانات المحلية",    grp:"بحث",     st:"on",   out:"رصد ٤ منافسين"},
   {n:3, name:"السوق الصيني",         grp:"بحث",     st:"wait", out:"بانتظار رد مصنع"},
@@ -471,7 +494,7 @@ const AGENTS = [
 ];
 
 // كل منتج: مصفوفة التكلفة (كل بند برقمه)، سعر البيع، توزيع الطلب على المناطق
-const PRODUCTS = [
+const PRODUCTS_DEMO = [
   {id:"P-118", name:"مرطّب هواء محمول للسيارة", stage:"econ", src:"أجنبي", agent:6,
    cost:{buy:14.8, intl:5.4, duty:1.2, vat:3.2, salla:1.1, gateway:2.4, lastmile:13.0, retpct:6.5},
    price:129, orders:212, w:{RUH:.30,MAK:.22,EAS:.18,MED:.08,QAS:.06,ASR:.06,TAB:.03,JAZ:.03,HAI:.02,NAJ:.01,JOU:.005,BAH:.005},
@@ -526,10 +549,10 @@ const PRODUCTS = [
    comp:{"مقاس/أبعاد":0,"جودة":0,"مدة شحن":0,"سعر":0,"تشغيل":0,"مطابقة الإعلان":0}}
 ];
 
-const QUOTA = {used:9, cap:12, dupes:5};
+const QUOTA_DEMO = {used:9, cap:12, dupes:5};
 
 /* ---- المواسم السعودية (نوافذ تقريبية للعرض — تُضبط من التقويم الرسمي) ---- */
-const SEASONS = [
+const SEASONS_DEMO = [
   {id:"school", name:"العودة للمدارس", from:"2026-08-16", to:"2026-09-20"},
   {id:"nat",    name:"اليوم الوطني",   from:"2026-09-10", to:"2026-09-25"},
   {id:"wf",     name:"الجمعة البيضاء", from:"2026-11-20", to:"2026-11-30"},
@@ -541,7 +564,7 @@ const TODAY = new Date("2026-08-05");
    مخرجات الوكلاء لكل منتج — تُملأ فقط للمراحل التي عبرها المنتج.
    المرحلة التي لم تُفتح بوابتها تبقى فاضية عمداً (لا تخمين).
    ============================================================ */
-const DOSSIER = {
+const DOSSIER_DEMO = {
 "P-118":{
   scout:{agent:1, platform:"مكتبة إعلانات ميتا", src:"عرض إعلان نشط", date:"2026-07-12",
     adDays:64, eng:"١٨ ألف تفاعل · ٤ إطلاقات", phase:"صاعد", angle:"مشكلة/حل — رائحة السيارة بعد الوقوف بالشمس",
@@ -713,6 +736,139 @@ const DOSSIER = {
   comp:null, sup:null, cont:null, med:null, store:null
 }
 };
+
+/* ============================================================
+   مصدر البيانات: حقيقي أو عرض توضيحي
+   اللوحة تشتغل على ملف JSON واحد. ثلاث طرق لتغذيته:
+     ١) data.json بجانب الملف (يُقرأ تلقائياً عند الاستضافة)
+     ٢) ارفع الملف من الزر — يُحفظ محلياً في المتصفح
+     ٣) اسحب الملف وأفلته على الصفحة
+   القالب الكامل يُنزَّل من الزر «نزّل القالب».
+   ============================================================ */
+const DEMO_BUNDLE = {
+  meta:{source:"بيانات عرض توضيحي", generated_at:"2026-08-05", currency:"SAR"},
+  regions:REGION_BASE_DEMO, products:PRODUCTS_DEMO, dossier:DOSSIER_DEMO,
+  agents:AGENTS_DEMO, quota:QUOTA_DEMO, seasons:SEASONS_DEMO
+};
+let REGION_BASE, PRODUCTS, DOSSIER, AGENTS, QUOTA, SEASONS, DATA_MODE, DATA_META;
+
+const REG_CODES = ["RUH","MAK","EAS","MED","QAS","ASR","JAZ","TAB","HAI","NAJ","JOU","BAH","NOR"];
+
+// فحص بنيوي — يرفض الملف الناقص بدل عرض أرقام نصف صحيحة
+function validateBundle(b){
+  const e = [];
+  if(!b || typeof b!=="object") return ["الملف ليس كائن JSON صالحاً"];
+  if(!b.regions || typeof b.regions!=="object") e.push("regions مفقود");
+  else REG_CODES.forEach(c=>{
+    const r=b.regions[c];
+    if(!r) e.push(`regions.${c} مفقود`);
+    else ["orders","aov","ret","cpa"].forEach(k=>{ if(typeof r[k]!=="number") e.push(`regions.${c}.${k} ليس رقماً`); });
+  });
+  if(!Array.isArray(b.products) || !b.products.length) e.push("products مفقود أو فاضي");
+  else b.products.forEach((p,i)=>{
+    ["id","name","stage","price","cost","w"].forEach(k=>{ if(p[k]===undefined) e.push(`products[${i}].${k} مفقود`); });
+    if(p.cost) ["buy","intl","duty","vat","salla","gateway","lastmile","retpct"].forEach(k=>{
+      if(typeof p.cost[k]!=="number") e.push(`products[${i}].cost.${k} ليس رقماً — لا تُترك خانة تكلفة بلا رقم موثّق`); });
+    if(p.stage && !STAGES.some(s=>s.id===p.stage)) e.push(`products[${i}].stage=«${p.stage}» ليس مرحلة معروفة`);
+  });
+  if(!Array.isArray(b.agents) || b.agents.length!==13) e.push("agents يجب أن يكون ١٣ وكيلاً");
+  if(!b.quota || typeof b.quota.cap!=="number") e.push("quota.cap مفقود");
+  if(!Array.isArray(b.seasons)) e.push("seasons مفقود");
+  return e;
+}
+
+function applyBundle(b, mode){
+  REGION_BASE=b.regions; PRODUCTS=b.products; DOSSIER=b.dossier||{};
+  AGENTS=b.agents; QUOTA=b.quota; SEASONS=b.seasons;
+  DATA_MODE=mode; DATA_META=b.meta||{};
+  if(!PRODUCTS.some(p=>p.id===state.product)) state.product = PRODUCTS[0] ? PRODUCTS[0].id : null;
+  state.region=null; state.stage=null; state.agent=null;
+}
+
+function loadJSON(text, name){
+  let b; try{ b = JSON.parse(text); }
+  catch(err){ return dataError(["الملف ليس JSON صالحاً: "+err.message]); }
+  const errs = validateBundle(b);
+  if(errs.length) return dataError(errs);
+  try{ localStorage.setItem("alhamry_ops_data", text); }catch(e){}
+  b.meta = Object.assign({source:name||"ملف مرفوع"}, b.meta);
+  applyBundle(b, "live"); paintDataBar(); render();
+}
+function dataError(errs){
+  $("#dataerr").innerHTML = `<b>لم يُقبل الملف — ${fmt(errs.length)} مشكلة:</b><ul class="lst" style="margin-top:6px">`
+    + errs.slice(0,12).map(x=>`<li>${x}</li>`).join("")
+    + (errs.length>12?`<li>… و${fmt(errs.length-12)} غيرها</li>`:"") + `</ul>`;
+  $("#dataerr").style.display = "block";
+}
+function useDemo(){
+  try{ localStorage.removeItem("alhamry_ops_data"); }catch(e){}
+  applyBundle(JSON.parse(JSON.stringify(DEMO_BUNDLE)), "demo");
+  $("#dataerr").style.display="none"; paintDataBar(); render();
+}
+function downloadTemplate(){
+  const blob = new Blob([JSON.stringify(DEMO_BUNDLE, null, 2)], {type:"application/json;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "alhamry-ops-data.json";
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+function paintDataBar(){
+  const live = DATA_MODE==="live";
+  $("#databar").className = "databar " + (live?"live":"demo");
+  $("#databar").innerHTML =
+    (live
+      ? `<span class="tag t-go">✓ بيانات حقيقية</span>
+         <span>المصدر: <b>${DATA_META.source||"—"}</b>${DATA_META.generated_at?` · محدَّثة ${maybeDate(DATA_META.generated_at)}`:""}
+         · ${fmt(PRODUCTS.length)} منتج · ${fmt(Object.keys(REGION_BASE).length)} منطقة</span>`
+      : `<span class="tag t-wait">⏳ بيانات عرض توضيحي</span>
+         <span>الأرقام هنا للتجربة فقط — ارفع ملف بيانات وكلائك ليشتغل على الحقيقي.</span>`)
+    + `<span class="dbtns">
+         <button class="lnk" id="btnUpload">⬆ ارفع ملف بيانات</button>
+         <button class="lnk" id="btnTpl">⬇ نزّل القالب</button>
+         ${live?`<button class="lnk" id="btnDemo">↺ رجّع للعرض التوضيحي</button>`:""}
+       </span>`;
+  $("#btnUpload").onclick = ()=> $("#file").click();
+  $("#btnTpl").onclick = downloadTemplate;
+  const bd = $("#btnDemo"); if(bd) bd.onclick = useDemo;
+}
+function bindData(){
+  $("#file").addEventListener("change", ev=>{
+    const f = ev.target.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=> loadJSON(rd.result, f.name);
+    rd.readAsText(f, "utf-8");
+    ev.target.value = "";
+  });
+  ["dragenter","dragover"].forEach(t=>document.addEventListener(t, e=>{
+    e.preventDefault(); document.body.classList.add("dragging"); }));
+  ["dragleave","drop"].forEach(t=>document.addEventListener(t, e=>{
+    if(t==="dragleave" && e.relatedTarget) return;
+    document.body.classList.remove("dragging"); }));
+  document.addEventListener("drop", e=>{
+    e.preventDefault();
+    const f = e.dataTransfer.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = ()=> loadJSON(rd.result, f.name);
+    rd.readAsText(f, "utf-8");
+  });
+}
+// إقلاع: المحفوظ محلياً ⟵ data.json بجانب الملف ⟵ العرض التوضيحي
+async function boot(){
+  let saved = null;
+  try{ saved = localStorage.getItem("alhamry_ops_data"); }catch(e){}
+  if(saved){
+    const b = JSON.parse(saved);
+    if(!validateBundle(b).length){ applyBundle(b, "live"); return; }
+  }
+  try{
+    if(location.protocol === "file:") throw 0; // فتح مباشر من القرص — لا fetch
+    const r = await fetch("data.json", {cache:"no-store"});
+    if(r.ok){
+      const b = await r.json();
+      if(!validateBundle(b).length){ b.meta = Object.assign({source:"data.json"}, b.meta); applyBundle(b, "live"); return; }
+    }
+  }catch(e){ /* لا ملف بجانب الصفحة — عادي */ }
+  applyBundle(JSON.parse(JSON.stringify(DEMO_BUNDLE)), "demo");
+}
 
 /* ============================================================
    الحسابات
@@ -1063,6 +1219,61 @@ function paintDecisions(){
   });
 }
 
+/* ============================================================
+   شخصيات الوكلاء — أفاتار مجسّم مرسوم بـSVG
+   لا صور خارجية ولا مكتبات: الإحساس المجسّم من تدرّج كروي +
+   ضوء علوي + ظل داخلي + ظل ساقط + إضاءة حافة.
+   ============================================================ */
+const FACE = [ // لكل وكيل: لون البدلة، لون غطاء الرأس، الأداة
+  {c:"#3a6ff0", h:"#22304a", tool:"🔍"}, {c:"#1baf7a", h:"#1f3a30", tool:"📣"},
+  {c:"#e0972a", h:"#3a2c14", tool:"🏭"}, {c:"#8b5cf6", h:"#2b2340", tool:"⚖️"},
+  {c:"#0ea5b7", h:"#123840", tool:"🚢"}, {c:"#d4a24c", h:"#3a2f1c", tool:"🧮"},
+  {c:"#e8607f", h:"#40222b", tool:"✍️"}, {c:"#7c8cf8", h:"#262b46", tool:"🎬"},
+  {c:"#22a06b", h:"#16332a", tool:"🛡️"}, {c:"#f0803c", h:"#3d2718", tool:"📈"},
+  {c:"#4aa3e0", h:"#1a3040", tool:"🛒"}, {c:"#c77dff", h:"#31234a", tool:"📮"},
+  {c:"#b88a3e", h:"#3a2d18", tool:"🧭"}
+];
+function avatar(n, size, tool){
+  const f = FACE[(n-1)%13], u = "a"+n+"_"+size;
+  const t = tool && size>=40;
+  return `<svg class="av" width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true">
+    <defs>
+      <radialGradient id="bg${u}" cx="32%" cy="24%" r="82%">
+        <stop offset="0" stop-color="${f.c}" stop-opacity=".55"/>
+        <stop offset="1" stop-color="${f.c}" stop-opacity=".10"/>
+      </radialGradient>
+      <radialGradient id="sk${u}" cx="34%" cy="26%" r="72%">
+        <stop offset="0" stop-color="#f7d9bd"/><stop offset=".62" stop-color="#e3b48d"/>
+        <stop offset="1" stop-color="#a9764f"/>
+      </radialGradient>
+      <linearGradient id="bd${u}" x1="0" y1="0" x2=".35" y2="1">
+        <stop offset="0" stop-color="${f.c}"/><stop offset="1" stop-color="${f.h}"/>
+      </linearGradient>
+      <linearGradient id="hr${u}" x1=".2" y1="0" x2=".8" y2="1">
+        <stop offset="0" stop-color="${f.h}" stop-opacity=".95"/><stop offset="1" stop-color="#0b0d12"/>
+      </linearGradient>
+      <radialGradient id="sh${u}" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="#000" stop-opacity=".45"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <circle cx="50" cy="50" r="49" fill="url(#bg${u})"/>
+    <ellipse cx="50" cy="88" rx="30" ry="7" fill="url(#sh${u})"/>
+    <path d="M18 100c0-19 14-30 32-30s32 11 32 30z" fill="url(#bd${u})"/>
+    <path d="M18 100c0-19 14-30 32-30v30z" fill="#000" opacity=".14"/>
+    <ellipse cx="50" cy="44" rx="21" ry="23" fill="url(#sk${u})"/>
+    <path d="M29 40c0-14 9-22 21-22s21 8 21 22c-4-9-11-12-21-12s-17 3-21 12z" fill="url(#hr${u})"/>
+    <ellipse cx="42" cy="45" rx="2.6" ry="3.1" fill="#1b1d24"/>
+    <ellipse cx="58" cy="45" rx="2.6" ry="3.1" fill="#1b1d24"/>
+    <ellipse cx="41.2" cy="43.8" rx=".9" ry="1" fill="#fff" opacity=".9"/>
+    <ellipse cx="57.2" cy="43.8" rx=".9" ry="1" fill="#fff" opacity=".9"/>
+    <path d="M44 55q6 4.5 12 0" stroke="#8a5c3c" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="40" cy="33" rx="9" ry="6" fill="#fff" opacity=".16" transform="rotate(-22 40 33)"/>
+    <path d="M29 44a21 23 0 0 0 42 0" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="1.6"/>
+    ${t?`<circle cx="80" cy="79" r="17" fill="var(--surf)" stroke="${f.c}" stroke-width="2"/>
+        <text x="80" y="86" font-size="18" text-anchor="middle">${f.tool}</text>`:""}
+  </svg>`;
+}
+
 /* ---- الوكلاء ---- */
 function paintAgents(){
   const groups = ["بحث","بوابات","تنفيذ","تشغيل"];
@@ -1072,7 +1283,7 @@ function paintAgents(){
       const n = PRODUCTS.filter(p=>p.agent===a.n && (!state.region || p.w[state.region]>=0.05)).length;
       return `<div class="ag" data-n="${a.n}" role="button" aria-pressed="${state.agent===a.n}">
         <span class="dot ${DOT[a.st]}"></span>
-        <span class="n num">${a.n}</span>
+        <span class="avwrap">${avatar(a.n,34)}<span class="n num">${a.n}</span></span>
         <span class="tx"><span class="t1">${a.name}</span><span class="t2">${a.out}</span></span>
         ${n?`<span class="badge">${fmt(n)}</span>`:""}
       </div>`;
@@ -1211,6 +1422,13 @@ function paintDossier(){
     return;
   }
 
+  // صاحب البوابة الذي أنتج هذا التبويب
+  const OWNER = {scout:(d.agent||1), comp:4, sup:5, cont:7, med:9, store:11};
+  const own = AGENTS.find(a=>a.n===OWNER[state.tab]) || AGENTS[0];
+  const head = `<div class="agbig">${avatar(own.n,58,true)}
+    <div class="tx"><div class="t1">${own.name}</div>
+    <div class="t2">وكيل ${fmt(own.n)} · آخر مخرج: ${own.out}</div></div></div>`;
+
   if(state.tab==="scout"){
     body.innerHTML = kv([
       ["الوكيل الراصد", "و"+d.agent], ["المنصة", d.platform], ["نوع المصدر", d.src],
@@ -1297,6 +1515,7 @@ function paintDossier(){
        ${d.test?`<div class="seasonmsg" style="margin-top:12px">🧪 <b>الاختبار الجاري:</b> ${d.test.what} · المدة ${d.test.days} · المؤشر ${d.test.kpi} · معيار النجاح ${d.test.ok}
          <div style="color:var(--mut);font-size:11.5px;margin-top:4px">تغيير جوهري واحد فقط على الصفحة أثناء الاختبار.</div></div>`:""}`;
   }
+  body.insertAdjacentHTML("afterbegin", head);
 }
 
 /* ---- التشغيل ---- */
@@ -1311,9 +1530,12 @@ function render(){
   paintDecisions(); paintAgents();
 }
 
-$("#today").textContent = new Date().toLocaleDateString("ar-u-nu-latn-ca-gregory",{weekday:"long",day:"numeric",month:"long",year:"numeric"})
-  + " · الحصة الأسبوعية " + fmt(QUOTA.used) + " من " + fmt(QUOTA.cap);
-buildMap(); bindTop(); render();
+(async ()=>{
+  await boot();
+  $("#today").textContent = new Date().toLocaleDateString("ar-u-nu-latn-ca-gregory",{weekday:"long",day:"numeric",month:"long",year:"numeric"})
+    + " · الحصة الأسبوعية " + fmt(QUOTA.used) + " من " + fmt(QUOTA.cap);
+  buildMap(); bindTop(); bindData(); paintDataBar(); render();
+})();
 </script>
 </body>
 </html>
