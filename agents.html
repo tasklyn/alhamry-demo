@@ -1044,6 +1044,10 @@ const LASTMILE_FLOOR = 30;
 // إن كانت أصلاً قابلة للبلوغ. وحصة الربح المستهدفة تحوّل التعادل إلى هدف.
 const CPA_MARKET = {lo:25, hi:180, src:"إنستقرام/ميتا — السوق السعودي ٢٠٢٦"};
 const TARGET_PROFIT_SHARE = 0.5;   // نصف الهامش يبقى ربحاً ⟵ الهدف = التعادل ÷ ٢
+// تكلفة النقرة المرصودة للسوق السعودي، ومتوسط التحويل العالمي مرجعاً.
+// معدل التحويل المطلوب = تكلفة النقرة ÷ CPA المستهدف — اشتقاق لا رصد.
+const CPC_MARKET = {lo:0.40, mid:1.45, hi:2.50};
+const CVR_GLOBAL = 2.0;
 // المسجّل في ضريبة القيمة المضافة (إلزامي فوق ٣٧٥ ألف ر.س مبيعات سنوية):
 //   · السعر المعروض للمستهلك شامل الضريبة ⟵ الإيراد = السعر ÷ ١.١٥، والفرق يُورَّد للهيئة
 //   · ضريبة الاستيراد قابلة للخصم ⟵ ليست تكلفة
@@ -1381,6 +1385,8 @@ function paintEcon(){
   const cons = u.margin*0.62, mid = u.margin, opt = u.margin*1.34;
   const target = u.cpaMax * TARGET_PROFIT_SHARE;
   const scaleMax = Math.max(CPA_MARKET.hi, u.cpaMax) * 1.08;
+  const reqCvr = c => c/target*100;                 // نقرات لكل طلب = هدف ÷ نقرة ⟵ تحويل = المقلوب
+  const reqLo = reqCvr(CPC_MARKET.lo), reqMid = reqCvr(CPC_MARKET.mid), reqHi = reqCvr(CPC_MARKET.hi);
   const pos = v => Math.max(0, Math.min(100, v/scaleMax*100));
   const verdict = target < CPA_MARKET.lo
       ? `<span class="st-crit">✕</span> المستهدف <b>${sar(target)}</b> <b>دون أدنى نطاق السوق</b> (${fmt(CPA_MARKET.lo)} ر.س) — لا يُبلَغ إعلانياً بالسعر الحالي.`
@@ -1440,7 +1446,18 @@ function paintEcon(){
       <span class="lb" style="left:${pos(CPA_MARKET.lo)}%">${fmt(CPA_MARKET.lo)}</span>
       <span class="lb" style="left:${pos(CPA_MARKET.hi)}%">${fmt(CPA_MARKET.hi)}</span>
     </div>
-    <div class="seasonmsg" style="margin-top:26px">${verdict}
+    <div class="seasonmsg" style="margin-top:26px">
+      <b>ما يتطلبه المستهدف:</b> معدل تحويل
+      <b class="${reqMid>CVR_GLOBAL*1.5?"st-crit":reqMid>CVR_GLOBAL?"st-warn":"st-good"}">${AR1.format(reqMid)}٪</b>
+      عند تكلفة نقرة وسطى (${AR1.format(CPC_MARKET.mid)} ر.س) — أي
+      <b>${AR1.format(reqMid/CVR_GLOBAL)}×</b> المتوسط العالمي (${AR1.format(CVR_GLOBAL)}٪).
+      <div style="color:var(--ink2);font-size:12px;margin-top:5px">
+        عند نقرة رخيصة (${AR1.format(CPC_MARKET.lo)}): ${AR1.format(reqLo)}٪ — <span class="st-good">قابل</span> ·
+        عند نقرة غالية (${AR1.format(CPC_MARKET.hi)}): ${AR1.format(reqHi)}٪ — <span class="st-crit">غير واقعي</span>
+      </div>
+      <div style="color:var(--mut);font-size:11.5px;margin-top:4px">اشتقاق من نطاقين مرصودين، لا رقم مرصود · ٩٣٪ نسبة ترك السلة في المنطقة — الأعلى عالمياً · ٨٠٪+ من الشراء عبر الجوال</div>
+    </div>
+    <div class="seasonmsg" style="margin-top:10px">${verdict}
       <div style="color:var(--mut);font-size:11.5px;margin-top:4px">نطاق السوق: ${CPA_MARKET.src} · المستهدف = التعادل × ${AR1.format(TARGET_PROFIT_SHARE)} (يبقي ${AR1.format(TARGET_PROFIT_SHARE*100)}٪ من الهامش ربحاً)</div>
     </div>
 
