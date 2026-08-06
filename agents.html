@@ -791,7 +791,8 @@ const POP2022 = {
   QAS:1336179, TAB:886036, HAI:746406, JOU:595822, NAJ:592300, NOR:373577, BAH:339174
 };
 const DEMO_BUNDLE = {
-  meta:{source:"مثال كامل (بيانات عرض توضيحي)", generated_at:"2026-08-05", currency:"SAR"},
+  meta:{source:"مثال كامل (بيانات عرض توضيحي)", generated_at:"2026-08-05", currency:"SAR",
+        vatRegistered:true},   // مبيعات المثال تتجاوز حد التسجيل الإلزامي ٣٧٥ ألف ر.س سنوياً
   // السكان حقيقية حتى في المثال — المخترع هو مؤشرات المتجر وحدها
   regions:Object.fromEntries(Object.entries(REGION_BASE_DEMO).map(([c,r])=>[c,Object.assign({pop:POP2022[c]},r)])), products:PRODUCTS_DEMO, dossier:DOSSIER_DEMO,
   agents:AGENTS_DEMO, quota:QUOTA_DEMO, seasons:SEASONS_DEMO
@@ -805,7 +806,8 @@ const DEMO_BUNDLE = {
 const REAL_BUNDLE = {
   meta:{source:"تعداد السعودية ٢٠٢٢ (الهيئة العامة للإحصاء) + جولة رصد ٥ أغسطس ٢٠٢٦",
         generated_at:"2026-08-05", currency:"SAR",
-        note:"السكان موثّقة · مؤشرات المتجر فاضية حتى يُرفع تصدير المتجر"},
+        note:"السكان موثّقة · مؤشرات المتجر فاضية حتى يُرفع تصدير المتجر",
+        vatRegistered:true},
   regions: Object.fromEntries(Object.entries(POP2022).map(([c,pop])=>[c,{
     pop, orders:null, aov:null, ret:null, cpa:null,
     cities:(REGION_BASE_DEMO[c]||{}).cities||[]
@@ -1027,9 +1029,20 @@ const sarKpi = n => n>=100000 ? AR1.format(n/1000)+'<small> ألف ر.س</small>
 // معامل المدة — الطلبات تتراكم مع الوقت
 const rangeFactor = r => r===7 ? 0.24 : r===90 ? 2.85 : 1;
 
+const VAT_RATE = 0.15;
+// المسجّل في ضريبة القيمة المضافة (إلزامي فوق ٣٧٥ ألف ر.س مبيعات سنوية):
+//   · السعر المعروض للمستهلك شامل الضريبة ⟵ الإيراد = السعر ÷ ١.١٥، والفرق يُورَّد للهيئة
+//   · ضريبة الاستيراد قابلة للخصم ⟵ ليست تكلفة
+// وغير المسجّل: لا يحصّل ضريبة، ولا يخصم ضريبة استيراده، فتبقى تكلفة فعلية.
+const isVatRegistered = () => (DATA_META && DATA_META.vatRegistered) !== false;
+
 function unit(p){
   if(!p || !p.cost || typeof p.price!=="number") return null; // لم يصل بوابة الجدوى بعد
   const c=p.cost;
+  const reg = isVatRegistered();
+  const revenue = reg ? p.price/(1+VAT_RATE) : p.price;
+  const vatOut = reg ? p.price - revenue : 0;      // تُحصَّل من العميل وتُورَّد
+  const vatIn  = reg ? null : (c.vat||0);          // ضريبة الاستيراد: مستردّة للمسجّل
   // بوابة الدفع نسبة من سعر البيع لا مبلغ ثابت — والمبلغ الثابت يُقبل كبديل قديم
   const gw = typeof c.gatewayPct==="number" ? p.price*c.gatewayPct/100 : (c.gateway||0);
   // سلة اشتراك شهري ثابت لا نسبة على المبيعات: يُوزَّع على عدد طلبات الشهر.
@@ -1038,9 +1051,10 @@ function unit(p){
       ? (p.orders>0 ? c.sallaMonthly/p.orders : null)
       : (c.salla||0);
   const retCost = (c.buy+c.intl+c.lastmile) * (c.retpct/100);
-  const total = c.buy+c.intl+c.duty+c.vat+(sl||0)+gw+c.lastmile+retCost;
-  const margin = p.price-total;
-  return {retCost, total, margin, pct: margin/p.price*100, cpaMax: margin, gw, sl};
+  const total = c.buy+c.intl+c.duty+(vatIn||0)+(sl||0)+gw+c.lastmile+retCost;
+  const margin = revenue-total;                    // الهامش على الإيراد لا على السعر المعروض
+  return {retCost, total, margin, pct: margin/revenue*100, cpaMax: margin,
+          gw, sl, reg, revenue, vatOut, vatIn};
 }
 function lines(p){
   const c=p.cost, u=unit(p);
@@ -1048,7 +1062,7 @@ function lines(p){
     ["شراء الوحدة", c.buy, "عرض مورد مباشر"],
     ["شحن دولي", c.intl, "عرض شركة شحن"],
     ["رسوم جمركية", c.duty, "HS code مثبّت"],
-    ["ضريبة القيمة المضافة", c.vat, "١٥٪ نظامية"],
+    ["ضريبة الاستيراد", u.vatIn, u.reg ? "مستردّة — المتجر مسجّل ضريبياً" : "١٥٪ على القيمة الجمركية"],
     ["رسوم سلة", u.sl, typeof c.sallaMonthly==="number"
         ? (p.orders>0 ? `اشتراك ${fmt(c.sallaMonthly)} ر.س شهرياً ÷ ${fmt(p.orders)} طلب` : "اشتراك ثابت — لا عدد طلبات بعد")
         : "جدول الرسوم"],
@@ -1342,7 +1356,11 @@ function paintEcon(){
 
     <div class="econ-h">
       <span class="big num ${u.margin>0?'st-good':'st-crit'}">${sar(u.margin)}</span>
-      <span style="color:var(--mut);font-size:12.5px">هامش الوحدة (${AR1.format(u.pct)}٪) · سعر البيع ${sar(p.price)} · التكلفة الكاملة ${sar(u.total)}</span>
+      <span style="color:var(--mut);font-size:12.5px">هامش الوحدة (${AR1.format(u.pct)}٪) ·
+        ${u.reg ? `السعر المعروض ${sar(p.price)} <b>شامل الضريبة</b> ⟵ إيراد ${sar(u.revenue)}
+                   <span class="st-warn">(${sar(u.vatOut)} تُورَّد للهيئة)</span>`
+                : `سعر البيع ${sar(p.price)} — المتجر غير مسجّل ضريبياً`}
+        · التكلفة الكاملة ${sar(u.total)}</span>
     </div>
 
     <div class="costbar">${L.map((l,i)=>`<i style="width:${(l[1]||0)/u.total*100}%;background:var(${shades[i]})" title="${l[0]}"></i>`).join("")}

@@ -31,7 +31,13 @@
 
 ```jsonc
 {
-  "meta": { "source": "تصدير وكلاء ALHAMRY", "generated_at": "2026-08-05", "currency": "SAR" },
+  "meta": { "source": "تصدير وكلاء ALHAMRY", "generated_at": "2026-08-05", "currency": "SAR",
+
+            // يغيّر حسبة الهامش كلها — لا تتركه على الافتراض إن كنت تعرف حالتك:
+            "vatRegistered": true },     // true (الافتراض): السعر المعروض شامل ١٥٪ ضريبة،
+                                         //   فالإيراد = السعر ÷ ١.١٥، وضريبة الاستيراد مستردّة.
+                                         // false: لا تحصّل ضريبة ولا تخصمها — تبقى تكلفة.
+                                         // التسجيل إلزامي فوق ٣٧٥ ألف ر.س مبيعات سنوية.
 
   "regions": {                         // المفاتيح الـ13 إلزامية:
     "RUH": {                           // RUH MAK EAS MED QAS ASR JAZ TAB HAI NAJ JOU BAH NOR
