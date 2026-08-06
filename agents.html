@@ -194,6 +194,12 @@
   .stoprule b{color:var(--ink)}
   .costbar{display:flex;height:14px;border-radius:6px;overflow:hidden;gap:2px;margin:6px 0 10px}
   .costbar i{display:block;height:100%}
+  /* مقياس CPA: نطاق السوق المرصود مقابل التعادل والمستهدف */
+  .cpascale{direction:ltr;position:relative;height:16px;margin-top:14px;background:var(--empty);border-radius:8px}
+  .cpascale .band{position:absolute;top:0;height:16px;background:var(--s3);opacity:.5;border-radius:8px}
+  .cpascale .mk{position:absolute;top:-5px;width:3px;height:26px;border-radius:2px}
+  .cpascale .mk.be{background:var(--warn)} .cpascale .mk.tg{background:var(--gold)}
+  .cpascale .lb{position:absolute;top:20px;font-size:10.5px;color:var(--mut);transform:translateX(-50%)}
 
   /* ---------- agents rail ---------- */
   .rail h4{font-size:11.5px;color:var(--mut);margin:14px 6px 7px;letter-spacing:.3px}
@@ -1033,6 +1039,11 @@ const VAT_RATE = 0.15;
 // أدنى سعر شحن داخلي منشور للأفراد لدى شركات الشحن السعودية (أرامكس · ناقل · زاجل):
 // يبدأ من ٣٠ ر.س. عقود المتاجر أقل، لكن رقماً دون هذا الحد يلزمه عقد فعلي لا افتراض.
 const LASTMILE_FLOOR = 30;
+// نطاق تكلفة الاكتساب المرصود للسوق السعودي (إنستقرام/ميتا): ٢٥–١٨٠ ر.س.
+// نقطة التعادل وحدها لا تكفي حكماً: التعادل يعني ربحاً صفراً، والنطاق يقول
+// إن كانت أصلاً قابلة للبلوغ. وحصة الربح المستهدفة تحوّل التعادل إلى هدف.
+const CPA_MARKET = {lo:25, hi:180, src:"إنستقرام/ميتا — السوق السعودي ٢٠٢٦"};
+const TARGET_PROFIT_SHARE = 0.5;   // نصف الهامش يبقى ربحاً ⟵ الهدف = التعادل ÷ ٢
 // المسجّل في ضريبة القيمة المضافة (إلزامي فوق ٣٧٥ ألف ر.س مبيعات سنوية):
 //   · السعر المعروض للمستهلك شامل الضريبة ⟵ الإيراد = السعر ÷ ١.١٥، والفرق يُورَّد للهيئة
 //   · ضريبة الاستيراد قابلة للخصم ⟵ ليست تكلفة
@@ -1368,6 +1379,16 @@ function paintEcon(){
   }
   const L = lines(p), d = DEC[p.dec] || DEC.wait;
   const cons = u.margin*0.62, mid = u.margin, opt = u.margin*1.34;
+  const target = u.cpaMax * TARGET_PROFIT_SHARE;
+  const scaleMax = Math.max(CPA_MARKET.hi, u.cpaMax) * 1.08;
+  const pos = v => Math.max(0, Math.min(100, v/scaleMax*100));
+  const verdict = target < CPA_MARKET.lo
+      ? `<span class="st-crit">✕</span> المستهدف <b>${sar(target)}</b> <b>دون أدنى نطاق السوق</b> (${fmt(CPA_MARKET.lo)} ر.س) — لا يُبلَغ إعلانياً بالسعر الحالي.`
+    : u.cpaMax < CPA_MARKET.lo
+      ? `<span class="st-crit">✕</span> حتى التعادل <b>${sar(u.cpaMax)}</b> دون أدنى نطاق السوق — كل طلب مدفوع يخسر.`
+    : u.cpaMax < CPA_MARKET.hi
+      ? `<span class="st-warn">⚠</span> التعادل <b>${sar(u.cpaMax)}</b> داخل نطاق السوق (${fmt(CPA_MARKET.lo)}–${fmt(CPA_MARKET.hi)}) — قابل للبلوغ في الجزء الأدنى منه فقط، ويخسر في أعلاه.`
+      : `<span class="st-good">✓</span> التعادل <b>${sar(u.cpaMax)}</b> فوق نطاق السوق — هامش أمان واسع.`;
   const shades = ["--s1","--s2","--s3","--s4","--s5","--s4","--s3","--s2"];
   $("#econ").innerHTML = `
     <div class="phead"><div>
@@ -1403,12 +1424,29 @@ function paintEcon(){
       <div class="sc"><div class="l">متفائل</div><div class="n">${sar(opt)}</div></div>
     </div>
 
-    <div class="scen" style="grid-template-columns:1fr 1fr">
-      <div class="sc"><div class="l">أقصى CPA مسموح (تعادل)</div><div class="n">${sar(u.cpaMax)}</div></div>
+    <div class="scen" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="sc"><div class="l">CPA التعادل (ربح صفر)</div><div class="n">${sar(u.cpaMax)}</div></div>
+      <div class="sc base"><div class="l">🎯 CPA المستهدف <span style="color:var(--gold)">· القرار</span></div>
+        <div class="n ${target<CPA_MARKET.lo?"st-crit":""}">${sar(target)}</div></div>
       <div class="sc"><div class="l">ميزانية الاختبار</div><div class="n">${sar(Math.round(u.cpaMax*12/50)*50)}</div></div>
     </div>
 
-    <div class="stoprule">🛑 <b>حد الإيقاف:</b> أوقف إذا تجاوز CPA <b>${sar(u.cpaMax)}</b> بعد صرف <b>${sar(Math.round(u.cpaMax*12/50)*50)}</b> بدون <b>${fmt(6)}</b> طلبات.</div>
+    <div class="cpascale">
+      <div class="band" style="left:${pos(CPA_MARKET.lo)}%;width:${pos(CPA_MARKET.hi)-pos(CPA_MARKET.lo)}%"
+           title="نطاق السوق المرصود ${fmt(CPA_MARKET.lo)}–${fmt(CPA_MARKET.hi)} ر.س"></div>
+      <div class="mk be" style="left:${pos(u.cpaMax)}%" title="التعادل ${sar(u.cpaMax)}"></div>
+      <div class="mk tg" style="left:${pos(target)}%" title="المستهدف ${sar(target)}"></div>
+      <span class="lb" style="left:0%">٠</span>
+      <span class="lb" style="left:${pos(CPA_MARKET.lo)}%">${fmt(CPA_MARKET.lo)}</span>
+      <span class="lb" style="left:${pos(CPA_MARKET.hi)}%">${fmt(CPA_MARKET.hi)}</span>
+    </div>
+    <div class="seasonmsg" style="margin-top:26px">${verdict}
+      <div style="color:var(--mut);font-size:11.5px;margin-top:4px">نطاق السوق: ${CPA_MARKET.src} · المستهدف = التعادل × ${AR1.format(TARGET_PROFIT_SHARE)} (يبقي ${AR1.format(TARGET_PROFIT_SHARE*100)}٪ من الهامش ربحاً)</div>
+    </div>
+
+    <div class="stoprule">🛑 <b>حد الإيقاف:</b> أوقف إذا تجاوز CPA <b>${sar(target)}</b> (المستهدف) بعد صرف
+      <b>${sar(Math.round(u.cpaMax*12/50)*50)}</b> بدون <b>${fmt(6)}</b> طلبات.
+      <div style="margin-top:4px">وأوقف <b>فوراً</b> عند <b>${sar(u.cpaMax)}</b> (التعادل) — بعده كل طلب يخسر.</div></div>
     <div style="color:var(--mut);font-size:11.5px;margin-top:8px">السبب المسجّل: ${(p.why||[]).join(" · ")}</div>`;
 }
 
