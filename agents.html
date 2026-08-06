@@ -1030,6 +1030,9 @@ const sarKpi = n => n>=100000 ? AR1.format(n/1000)+'<small> ألف ر.س</small>
 const rangeFactor = r => r===7 ? 0.24 : r===90 ? 2.85 : 1;
 
 const VAT_RATE = 0.15;
+// أدنى سعر شحن داخلي منشور للأفراد لدى شركات الشحن السعودية (أرامكس · ناقل · زاجل):
+// يبدأ من ٣٠ ر.س. عقود المتاجر أقل، لكن رقماً دون هذا الحد يلزمه عقد فعلي لا افتراض.
+const LASTMILE_FLOOR = 30;
 // المسجّل في ضريبة القيمة المضافة (إلزامي فوق ٣٧٥ ألف ر.س مبيعات سنوية):
 //   · السعر المعروض للمستهلك شامل الضريبة ⟵ الإيراد = السعر ÷ ١.١٥، والفرق يُورَّد للهيئة
 //   · ضريبة الاستيراد قابلة للخصم ⟵ ليست تكلفة
@@ -1066,11 +1069,12 @@ function unit(p){
   const sl = (typeof c.sallaMonthly==="number")
       ? (p.orders>0 ? c.sallaMonthly/p.orders : null)
       : (c.salla||0);
+  const lmLow = typeof c.lastmile==="number" && c.lastmile < LASTMILE_FLOOR && !c.lastmileContract;
   const retCost = (c.buy+c.intl+c.lastmile) * (c.retpct/100);
   const total = c.buy+c.intl+c.duty+(vatIn||0)+(sl||0)+gw+c.lastmile+retCost;
   const margin = revenue-total;                    // الهامش على الإيراد لا على السعر المعروض
   return {retCost, total, margin, pct: margin/revenue*100, cpaMax: margin,
-          gw, sl, reg, revenue, vatOut, vatIn, payBasis, payPartial};
+          gw, sl, reg, revenue, vatOut, vatIn, payBasis, payPartial, lmLow};
 }
 function lines(p){
   const c=p.cost, u=unit(p);
@@ -1083,7 +1087,9 @@ function lines(p){
         ? (p.orders>0 ? `اشتراك ${fmt(c.sallaMonthly)} ر.س شهرياً ÷ ${fmt(p.orders)} طلب` : "اشتراك ثابت — لا عدد طلبات بعد")
         : "جدول الرسوم"],
     ["تحصيل الدفع", u.gw, u.payBasis],
-    ["توصيل للعميل", c.lastmile, "عقد شركة التوصيل"],
+    ["توصيل للعميل", c.lastmile, u.lmLow
+        ? `دون أدنى سعر منشور (${fmt(LASTMILE_FLOOR)} ر.س) — يلزمه عقد شحن فعلي`
+        : (c.lastmileContract ? "عقد شركة التوصيل — مثبَّت" : "عقد شركة التوصيل")],
     ["استرجاع وتوالف ("+AR1.format(c.retpct)+"٪)", u.retCost, "بيانات ما بعد البيع"]
   ];
 }
@@ -1384,11 +1390,11 @@ function paintEcon(){
     <div style="overflow-x:auto"><table>
       <thead><tr><th>بند التكلفة</th><th>ر.س</th><th>المصدر</th></tr></thead>
       <tbody>${L.map(l=>`<tr><td>${l[0]}</td><td><b>${l[1]===null?"—":AR1.format(l[1])}</b></td><td style="color:var(--mut)">${l[2]}</td></tr>`).join("")}
-      <tr><td><b>التكلفة الكاملة للوحدة</b></td><td><b>${AR1.format(u.total)}</b></td><td class="${(u.sl===null||u.payPartial)?"st-warn":""}">${
-        u.sl===null && u.payPartial ? "ناقص نصيب الاشتراك ومزيج الدفع — الهامش أدناه متفائل"
-      : u.sl===null ? "ناقص نصيب الاشتراك — الهامش أدناه متفائل"
-      : u.payPartial ? "مزيج الدفع غير مسجّل — الهامش أدناه متفائل"
-      : "مجموع محسوب"}</td></tr></tbody>
+      <tr><td><b>التكلفة الكاملة للوحدة</b></td><td><b>${AR1.format(u.total)}</b></td><td class="${(u.sl===null||u.payPartial||u.lmLow)?"st-warn":""}">${(()=>{
+        const g=[]; if(u.sl===null) g.push("نصيب الاشتراك");
+        if(u.payPartial) g.push("مزيج الدفع"); if(u.lmLow) g.push("عقد الشحن");
+        return g.length ? `غير مثبَّت: ${g.join(" · ")} — الهامش أدناه متفائل` : "مجموع محسوب";
+      })()}</td></tr></tbody>
     </table></div>
 
     <div class="scen">
