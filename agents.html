@@ -248,6 +248,7 @@
   .tl .gband{position:relative;height:13px;margin-top:5px}
   .tl .gate{position:absolute;top:0;width:3px;height:13px;border-radius:2px;cursor:help}
   .tl .gate.warn{background:var(--warn)} .tl .gate.crit{background:var(--crit)}
+  .tl .gate.off{opacity:.32}
   .tl .sea{position:absolute;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;
            font-size:11px;overflow:hidden;white-space:nowrap;padding:0 7px;color:#fff}
   .tl .now{position:absolute;top:0;bottom:0;width:2px;background:var(--gold);z-index:4}
@@ -587,10 +588,11 @@ const TODAY = new Date("2026-08-05");
 /* بوابات نظامية بمواعيد ثابتة — تُعرض على نفس التقويم لأن الموسم وحده
    لا يحكم التوقيت: شهادة تنتهي أو معيار يصير إلزامياً يوقف الشحنة كذلك. */
 const GATES = [
-  {d:"2026-08-31", t:"آخر موعد لقبول طلبات المكيفات بالمعيار القديم", sev:"warn"},
-  {d:"2026-11-01", t:"SASO 3114:2026 يصير إلزامياً لأجهزة تقنية المعلومات (يحل محل GEN-002)", sev:"crit"},
-  {d:"2026-12-01", t:"إلزام معياري المكيفات SASO 2663:2025 و2874:2025", sev:"crit"},
-  {d:"2027-01-01", t:"SASO 2944:2023 — نداء الطوارئ للمركبات الكهربائية", sev:"warn"}
+  {d:"2026-08-19", t:"رموز HS إضافية تدخل التنظيم (أصباغ · مواد كاشطة · حديد ومواد بناء)", sev:"warn", ours:false},
+  {d:"2026-08-31", t:"آخر موعد لقبول طلبات المكيفات بالمعيار القديم", sev:"warn", ours:false},
+  {d:"2026-11-01", t:"SASO 3114:2026 يصير إلزامياً لأجهزة تقنية المعلومات (يحل محل GEN-002)", sev:"crit", ours:true},
+  {d:"2026-12-01", t:"إلزام معياري المكيفات SASO 2663:2025 و2874:2025", sev:"crit", ours:false},
+  {d:"2027-01-01", t:"SASO 2944:2023 — نداء الطوارئ للمركبات الكهربائية", sev:"warn", ours:false}
 ];
 // سارية فعلاً منذ ما قبل اليوم (تُعرض كنص لا كعلامة على المحور):
 const GATES_ACTIVE = [
@@ -1570,10 +1572,11 @@ function paintSeasons(){
   }
   const gates = GATES.filter(g=>new Date(g.d)>=T0 && new Date(g.d)<=T1).map(g=>{
     const days = Math.round((new Date(g.d)-TODAY)/DAY);
-    return `<div class="gate ${g.sev}" style="left:${tpos(g.d)}%"
-      title="${dfmt(g.d)} — ${g.t}${days>=0?` · بعد ${fmt(days)} يوم`:" · مضى"}"></div>`;
+    return `<div class="gate ${g.sev}${g.ours?"":" off"}" style="left:${tpos(g.d)}%"
+      title="${dfmt(g.d)} — ${g.t}${days>=0?` · بعد ${fmt(days)} يوم`:" · مضى"}${g.ours?"":" · لا يمس فئاتنا"}"></div>`;
   }).join("");
-  const soon = GATES.map(g=>({g, days:Math.round((new Date(g.d)-TODAY)/DAY)}))
+  // العدّاد يقيس أقرب بوابة تمسّ فئاتنا — لا أقرب بوابة مطلقاً، وإلا نبّه على ما لا يعنينا
+  const soon = GATES.filter(g=>g.ours).map(g=>({g, days:Math.round((new Date(g.d)-TODAY)/DAY)}))
                     .filter(x=>x.days>=0).sort((a,b)=>a.days-b.days)[0];
 
   $("#tl").innerHTML =
