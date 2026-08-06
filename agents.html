@@ -1052,6 +1052,10 @@ const TARGET_PROFIT_SHARE = 0.5;   // نصف الهامش يبقى ربحاً �
 // معدل التحويل المطلوب = تكلفة النقرة ÷ CPA المستهدف — اشتقاق لا رصد.
 const CPC_MARKET = {lo:0.40, mid:1.45, hi:2.50};
 const CVR_GLOBAL = 2.0;
+// عتبة القراءة: ٥٠ تحويلاً أسبوعياً هي الحد الأدنى الذي يخرج به محرك ميتا من طور
+// التعلّم — دونه التذبذب أكبر من الإشارة. و١٠٠ لكل متغيّر لدلالة إحصائية في اختبار A/B.
+// فميزانية الاختبار ليست رقماً اختيارياً: هي ثمن الوصول إلى نتيجة تُقرأ.
+const SIGNAL_MIN = 50, SIGNAL_AB = 100;
 // المسجّل في ضريبة القيمة المضافة (إلزامي فوق ٣٧٥ ألف ر.س مبيعات سنوية):
 //   · السعر المعروض للمستهلك شامل الضريبة ⟵ الإيراد = السعر ÷ ١.١٥، والفرق يُورَّد للهيئة
 //   · ضريبة الاستيراد قابلة للخصم ⟵ ليست تكلفة
@@ -1396,6 +1400,7 @@ function paintEcon(){
   const scaleMax = Math.max(CPA_MARKET.hi, u.cpaMax) * 1.08;
   const reqCvr = c => c/target*100;                 // نقرات لكل طلب = هدف ÷ نقرة ⟵ تحويل = المقلوب
   const reqLo = reqCvr(CPC_MARKET.lo), reqMid = reqCvr(CPC_MARKET.mid), reqHi = reqCvr(CPC_MARKET.hi);
+  const testBudget = Math.round(target*SIGNAL_MIN/50)*50;   // ثمن بلوغ عتبة القراءة بالمستهدف
   const pos = v => Math.max(0, Math.min(100, v/scaleMax*100));
   const verdict = target < CPA_MARKET.lo
       ? `<span class="st-crit">✕</span> المستهدف <b>${sar(target)}</b> <b>دون أدنى نطاق السوق</b> (${fmt(CPA_MARKET.lo)} ر.س) — لا يُبلَغ إعلانياً بالسعر الحالي.`
@@ -1443,7 +1448,7 @@ function paintEcon(){
       <div class="sc"><div class="l">CPA التعادل (ربح صفر)</div><div class="n">${sar(u.cpaMax)}</div></div>
       <div class="sc base"><div class="l">🎯 CPA المستهدف <span style="color:var(--gold)">· القرار</span></div>
         <div class="n ${target<CPA_MARKET.lo?"st-crit":""}">${sar(target)}</div></div>
-      <div class="sc"><div class="l">ميزانية الاختبار</div><div class="n">${sar(Math.round(u.cpaMax*12/50)*50)}</div></div>
+      <div class="sc"><div class="l">ميزانية الاختبار (${fmt(SIGNAL_MIN)} طلب)</div><div class="n">${sar(testBudget)}</div></div>
     </div>
 
     <div class="cpascale">
@@ -1470,9 +1475,13 @@ function paintEcon(){
       <div style="color:var(--mut);font-size:11.5px;margin-top:4px">نطاق السوق: ${CPA_MARKET.src} · المستهدف = التعادل × ${AR1.format(TARGET_PROFIT_SHARE)} (يبقي ${AR1.format(TARGET_PROFIT_SHARE*100)}٪ من الهامش ربحاً)</div>
     </div>
 
-    <div class="stoprule">🛑 <b>حد الإيقاف:</b> أوقف إذا تجاوز CPA <b>${sar(target)}</b> (المستهدف) بعد صرف
-      <b>${sar(Math.round(u.cpaMax*12/50)*50)}</b> بدون <b>${fmt(6)}</b> طلبات.
-      <div style="margin-top:4px">وأوقف <b>فوراً</b> عند <b>${sar(u.cpaMax)}</b> (التعادل) — بعده كل طلب يخسر.</div></div>
+    <div class="stoprule">🛑 <b>حد الإيقاف:</b> أوقف إذا تجاوز CPA <b>${sar(u.cpaMax)}</b> (التعادل) في أي لحظة — بعده كل طلب يخسر.
+      <div style="margin-top:4px">وبعد <b>${sar(testBudget)}</b> (ثمن ${fmt(SIGNAL_MIN)} طلب بالمستهدف): إن بقي CPA فوق
+        <b>${sar(target)}</b> فأوقف.</div>
+      <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line2);color:var(--ink2);font-size:12px">
+        ⚠ <b>لا تحكم دون ${fmt(SIGNAL_MIN)} طلب.</b> ما دون ذلك تذبذبٌ لا إشارة — والقرار عليه يقتل منتجاً صالحاً
+        ويُبقي فاشلاً بالتساوي. ولمقارنة زاويتين: <b>${fmt(SIGNAL_AB)} طلب لكل زاوية</b> · مدة ٧–١٤ يوماً.
+      </div></div>
     <div style="color:var(--mut);font-size:11.5px;margin-top:8px">السبب المسجّل: ${(p.why||[]).join(" · ")}</div>`;
 }
 
