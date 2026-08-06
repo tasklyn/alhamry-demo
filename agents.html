@@ -510,54 +510,54 @@ const AGENTS_DEMO = [
 // كل منتج: مصفوفة التكلفة (كل بند برقمه)، سعر البيع، توزيع الطلب على المناطق
 const PRODUCTS_DEMO = [
   {id:"P-118", name:"مرطّب هواء محمول للسيارة", stage:"econ", src:"أجنبي", agent:6,
-   cost:{buy:14.8, intl:5.4, duty:1.2, vat:3.2, salla:1.1, gateway:2.4, lastmile:13.0, retpct:6.5},
+   cost:{buy:14.8, intl:5.4, duty:1.2, vat:3.2, sallaMonthly:99, gatewayPct:3.0, salla:1.1, gateway:2.4, lastmile:13.0, retpct:6.5},
    price:129, orders:212, w:{RUH:.30,MAK:.22,EAS:.18,MED:.08,QAS:.06,ASR:.06,TAB:.03,JAZ:.03,HAI:.02,NAJ:.01,JOU:.005,BAH:.005},
    dec:"go", why:["CPA الفعلي ٣٤ ر.س","الحد ٤٧ ر.س"], comp:{"مقاس/أبعاد":2,"جودة":1,"مدة شحن":4,"سعر":2,"تشغيل":1,"مطابقة الإعلان":1}},
 
   {id:"P-124", name:"منظّم أدراج مطبخ قابل للطي", stage:"content", src:"محلي", agent:7,
-   cost:{buy:11.2, intl:6.8, duty:0.9, vat:2.7, salla:1.1, gateway:2.0, lastmile:14.5, retpct:8.0},
+   cost:{buy:11.2, intl:6.8, duty:0.9, vat:2.7, sallaMonthly:99, gatewayPct:3.0, salla:1.1, gateway:2.0, lastmile:14.5, retpct:8.0},
    price:99, orders:143, w:{RUH:.26,MAK:.24,EAS:.14,MED:.10,QAS:.07,ASR:.07,JAZ:.05,TAB:.03,HAI:.02,BAH:.01,NAJ:.005,JOU:.005},
    dec:"wait", why:["زاوية واحدة فقط جاهزة","الحد الأدنى زاويتان"], wait:"زاوية إعلانية ثانية", due:"2026-08-09",
    comp:{"مقاس/أبعاد":5,"جودة":2,"مدة شحن":2,"سعر":3,"تشغيل":1,"مطابقة الإعلان":3}},
 
   {id:"P-131", name:"جهاز عناية بالبشرة (تجميل)", stage:"eval", src:"صيني", agent:4,
-   cost:{buy:38.0, intl:9.1, duty:3.4, vat:7.6, salla:1.1, gateway:4.5, lastmile:15.0, retpct:11.0},
+   cost:{buy:38.0, intl:9.1, duty:3.4, vat:7.6, sallaMonthly:99, gatewayPct:3.0, salla:1.1, gateway:4.5, lastmile:15.0, retpct:11.0},
    price:349, orders:0, w:{RUH:.34,MAK:.24,EAS:.16,MED:.08,QAS:.05,ASR:.05,TAB:.03,JAZ:.02,HAI:.02,NAJ:.005,JOU:.005},
    dec:"stop", why:["فئة تحتاج تسجيل هيئة الغذاء والدواء","لا يُمرَّر قبل حسم الوضع النظامي"],
    comp:{"مقاس/أبعاد":0,"جودة":0,"مدة شحن":0,"سعر":0,"تشغيل":0,"مطابقة الإعلان":0}},
 
   {id:"P-140", name:"حقيبة تنظيم سفر ٧ قطع", stage:"live", src:"أجنبي", agent:12,
-   cost:{buy:19.6, intl:7.2, duty:1.6, vat:4.1, salla:1.1, gateway:2.9, lastmile:13.5, retpct:5.2},
+   cost:{buy:19.6, intl:7.2, duty:1.6, vat:4.1, sallaMonthly:99, gatewayPct:3.0, salla:1.1, gateway:2.9, lastmile:13.5, retpct:5.2},
    price:159, orders:387, w:{RUH:.28,MAK:.23,EAS:.17,MED:.09,QAS:.06,ASR:.06,JAZ:.04,TAB:.04,HAI:.02,NAJ:.005,JOU:.005},
    dec:"go", why:["هامش الوحدة ٩٤ ر.س","الاسترجاع ٥.٢٪ تحت الحد ٨٪"],
    comp:{"مقاس/أبعاد":7,"جودة":2,"مدة شحن":6,"سعر":1,"تشغيل":0,"مطابقة الإعلان":4}},
 
   {id:"P-146", name:"مصباح مكتب لاسلكي", stage:"supply", src:"صيني", agent:5,
-   cost:{buy:22.4, intl:8.6, duty:2.1, vat:4.9, salla:1.1, gateway:3.2, lastmile:14.0, retpct:7.0},
+   cost:{buy:22.4, intl:8.6, duty:2.1, vat:4.9, sallaMonthly:99, gatewayPct:3.0, salla:1.1, gateway:3.2, lastmile:14.0, retpct:7.0},
    price:189, orders:0, w:{RUH:.31,MAK:.21,EAS:.19,MED:.08,QAS:.06,ASR:.05,TAB:.04,HAI:.03,JAZ:.02,NAJ:.005,JOU:.005},
    dec:"wait", why:["بطارية ليثيوم — SABER مطلوب","لا طلب جملة قبل تثبيت HS code"], wait:"شهادة SABER + HS code", due:"2026-08-12",
    comp:{"مقاس/أبعاد":1,"جودة":1,"مدة شحن":1,"سعر":0,"تشغيل":2,"مطابقة الإعلان":0}},
 
   {id:"P-152", name:"مِبشرة مطبخ متعددة", stage:"media", src:"أجنبي", agent:8,
-   cost:{buy:9.8, intl:5.1, duty:0.8, vat:2.3, salla:1.1, gateway:1.8, lastmile:13.0, retpct:9.5},
+   cost:{buy:9.8, intl:5.1, duty:0.8, vat:2.3, sallaMonthly:99, gatewayPct:3.0, salla:1.1, gateway:1.8, lastmile:13.0, retpct:9.5},
    price:89, orders:0, w:{RUH:.25,MAK:.25,EAS:.15,MED:.10,QAS:.07,ASR:.07,JAZ:.05,TAB:.03,HAI:.02,BAH:.01},
    dec:"stop", why:["الهامش ٣١ ر.س < الحد الأدنى ٤٥ ر.س","السيناريو المتحفظ سالب"],
    comp:{"مقاس/أبعاد":3,"جودة":4,"مدة شحن":1,"سعر":2,"تشغيل":0,"مطابقة الإعلان":1}},
 
   {id:"P-158", name:"سجادة صلاة بذاكرة ضغط", stage:"store", src:"محلي", agent:11,
-   cost:{buy:26.5, intl:9.8, duty:2.4, vat:5.6, salla:1.1, gateway:3.6, lastmile:15.5, retpct:4.4},
+   cost:{buy:26.5, intl:9.8, duty:2.4, vat:5.6, sallaMonthly:99, gatewayPct:3.0, salla:1.1, gateway:3.6, lastmile:15.5, retpct:4.4},
    price:219, orders:64, w:{RUH:.27,MAK:.26,EAS:.15,MED:.11,QAS:.06,ASR:.05,JAZ:.04,TAB:.03,HAI:.02,BAH:.01},
    dec:"wait", why:["وعد التوصيل غير مؤكد من التوريد"], wait:"تأكيد مدة التوصيل", due:"2026-08-07",
    comp:{"مقاس/أبعاد":2,"جودة":1,"مدة شحن":3,"سعر":1,"تشغيل":0,"مطابقة الإعلان":2}},
 
   {id:"P-163", name:"مروحة رقبة قابلة للشحن", stage:"review", src:"صيني", agent:9,
-   cost:{buy:16.2, intl:6.4, duty:1.4, vat:3.5, salla:1.1, gateway:2.6, lastmile:13.5, retpct:7.8},
+   cost:{buy:16.2, intl:6.4, duty:1.4, vat:3.5, sallaMonthly:99, gatewayPct:3.0, salla:1.1, gateway:2.6, lastmile:13.5, retpct:7.8},
    price:139, orders:0, w:{RUH:.24,MAK:.26,EAS:.16,JAZ:.08,ASR:.08,MED:.08,QAS:.05,NAJ:.02,TAB:.02,HAI:.01},
    dec:"wait", why:["المادة تُظهر أداءً غير مختبر على العينة"], wait:"إعادة تصوير من العينة", due:"2026-08-04",
    comp:{"مقاس/أبعاد":1,"جودة":2,"مدة شحن":1,"سعر":1,"تشغيل":3,"مطابقة الإعلان":5}},
 
   {id:"P-171", name:"حامل جوال مغناطيسي للسيارة", stage:"scout", src:"أجنبي", agent:1,
-   cost:{buy:7.4, intl:4.2, duty:0.6, vat:1.8, salla:1.1, gateway:1.5, lastmile:12.5, retpct:6.0},
+   cost:{buy:7.4, intl:4.2, duty:0.6, vat:1.8, sallaMonthly:99, gatewayPct:3.0, salla:1.1, gateway:1.5, lastmile:12.5, retpct:6.0},
    price:79, orders:0, w:{RUH:.29,MAK:.23,EAS:.18,MED:.08,QAS:.06,ASR:.06,TAB:.04,JAZ:.03,HAI:.02,NAJ:.01},
    dec:"wait", why:["مكرر — رُصد قبل ٤١ يوماً","السبب الجديد: سعر المورد نزل ١٩٪"], wait:"تأكيد السعر الجديد", due:"2026-08-06",
    comp:{"مقاس/أبعاد":0,"جودة":0,"مدة شحن":0,"سعر":0,"تشغيل":0,"مطابقة الإعلان":0}}
@@ -1030,10 +1030,17 @@ const rangeFactor = r => r===7 ? 0.24 : r===90 ? 2.85 : 1;
 function unit(p){
   if(!p || !p.cost || typeof p.price!=="number") return null; // لم يصل بوابة الجدوى بعد
   const c=p.cost;
+  // بوابة الدفع نسبة من سعر البيع لا مبلغ ثابت — والمبلغ الثابت يُقبل كبديل قديم
+  const gw = typeof c.gatewayPct==="number" ? p.price*c.gatewayPct/100 : (c.gateway||0);
+  // سلة اشتراك شهري ثابت لا نسبة على المبيعات: يُوزَّع على عدد طلبات الشهر.
+  // بلا عدد طلبات لا يوجد نصيب وحدة — والقسمة على صفر ليست رقماً.
+  const sl = (typeof c.sallaMonthly==="number")
+      ? (p.orders>0 ? c.sallaMonthly/p.orders : null)
+      : (c.salla||0);
   const retCost = (c.buy+c.intl+c.lastmile) * (c.retpct/100);
-  const total = c.buy+c.intl+c.duty+c.vat+c.salla+c.gateway+c.lastmile+retCost;
+  const total = c.buy+c.intl+c.duty+c.vat+(sl||0)+gw+c.lastmile+retCost;
   const margin = p.price-total;
-  return {retCost, total, margin, pct: margin/p.price*100, cpaMax: margin};
+  return {retCost, total, margin, pct: margin/p.price*100, cpaMax: margin, gw, sl};
 }
 function lines(p){
   const c=p.cost, u=unit(p);
@@ -1042,8 +1049,11 @@ function lines(p){
     ["شحن دولي", c.intl, "عرض شركة شحن"],
     ["رسوم جمركية", c.duty, "HS code مثبّت"],
     ["ضريبة القيمة المضافة", c.vat, "١٥٪ نظامية"],
-    ["رسوم سلة", c.salla, "جدول الرسوم"],
-    ["بوابة الدفع", c.gateway, "عقد البوابة"],
+    ["رسوم سلة", u.sl, typeof c.sallaMonthly==="number"
+        ? (p.orders>0 ? `اشتراك ${fmt(c.sallaMonthly)} ر.س شهرياً ÷ ${fmt(p.orders)} طلب` : "اشتراك ثابت — لا عدد طلبات بعد")
+        : "جدول الرسوم"],
+    ["بوابة الدفع", u.gw, typeof c.gatewayPct==="number"
+        ? `${AR1.format(c.gatewayPct)}٪ من سعر البيع` : "عقد البوابة"],
     ["توصيل للعميل", c.lastmile, "عقد شركة التوصيل"],
     ["استرجاع وتوالف ("+AR1.format(c.retpct)+"٪)", u.retCost, "بيانات ما بعد البيع"]
   ];
@@ -1335,13 +1345,13 @@ function paintEcon(){
       <span style="color:var(--mut);font-size:12.5px">هامش الوحدة (${AR1.format(u.pct)}٪) · سعر البيع ${sar(p.price)} · التكلفة الكاملة ${sar(u.total)}</span>
     </div>
 
-    <div class="costbar">${L.map((l,i)=>`<i style="width:${l[1]/u.total*100}%;background:var(${shades[i]})" title="${l[0]}"></i>`).join("")}
+    <div class="costbar">${L.map((l,i)=>`<i style="width:${(l[1]||0)/u.total*100}%;background:var(${shades[i]})" title="${l[0]}"></i>`).join("")}
       <i style="width:${Math.max(0,u.margin)/p.price*100*0}%"></i></div>
 
     <div style="overflow-x:auto"><table>
       <thead><tr><th>بند التكلفة</th><th>ر.س</th><th>المصدر</th></tr></thead>
-      <tbody>${L.map(l=>`<tr><td>${l[0]}</td><td><b>${AR1.format(l[1])}</b></td><td style="color:var(--mut)">${l[2]}</td></tr>`).join("")}
-      <tr><td><b>التكلفة الكاملة للوحدة</b></td><td><b>${AR1.format(u.total)}</b></td><td style="color:var(--mut)">مجموع محسوب</td></tr></tbody>
+      <tbody>${L.map(l=>`<tr><td>${l[0]}</td><td><b>${l[1]===null?"—":AR1.format(l[1])}</b></td><td style="color:var(--mut)">${l[2]}</td></tr>`).join("")}
+      <tr><td><b>التكلفة الكاملة للوحدة</b></td><td><b>${AR1.format(u.total)}</b></td><td class="${u.sl===null?"st-warn":""}">${u.sl===null?"ناقص نصيب الاشتراك — الهامش أدناه متفائل":"مجموع محسوب"}</td></tr></tbody>
     </table></div>
 
     <div class="scen">
