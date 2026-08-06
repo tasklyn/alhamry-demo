@@ -247,6 +247,9 @@
   .tl .sea{position:absolute;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;
            font-size:11px;overflow:hidden;white-space:nowrap;padding:0 7px;color:#fff}
   .tl .now{position:absolute;top:0;bottom:0;width:2px;background:var(--gold);z-index:4}
+  /* علامة اليوم المثبّت داخل الموسم (تاريخ المناسبة نفسها، لا حدود النافذة) */
+  .tl .anchor{position:absolute;top:-3px;width:0;height:0;z-index:5;
+              border-inline:5px solid transparent;border-top:7px solid var(--ink)}
   .tl .nowlab{position:absolute;font-size:10.5px;color:var(--gold);transform:translateX(-50%);white-space:nowrap}
   .tl .prep{position:absolute;height:20px;border-radius:6px;display:flex;align-items:center;padding:0 7px;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden}
   .seasonmsg{font-size:12.5px;margin-top:10px;padding:9px 11px;border-radius:11px;border:1px solid var(--line);background:var(--surf2);color:var(--ink2)}
@@ -558,11 +561,22 @@ const PRODUCTS_DEMO = [
 const QUOTA_DEMO = {used:9, cap:12, dupes:5};
 
 /* ---- المواسم السعودية (نوافذ تقريبية للعرض — تُضبط من التقويم الرسمي) ---- */
+/* نوافذ البيع حول كل مناسبة تقديرية، أمّا تواريخ المناسبات نفسها فمثبّتة:
+   اليوم الوطني ٢٣ سبتمبر ٢٠٢٦ (أربعاء) · يوم التأسيس ٢٢ فبراير ٢٠٢٧ (اثنين)
+   · الجمعة البيضاء = آخر جمعة في نوفمبر = ٢٧ نوفمبر ٢٠٢٦.
+   تنبيه: أحد المصادر التجارية ذكر ٢٨ نوفمبر وهو سبت — يخالف قاعدته نفسها،
+   فاعتُمد التقويم لا المصدر. */
 const SEASONS_DEMO = [
-  {id:"school", name:"العودة للمدارس", from:"2026-08-16", to:"2026-09-20"},
-  {id:"nat",    name:"اليوم الوطني",   from:"2026-09-10", to:"2026-09-25"},
-  {id:"wf",     name:"الجمعة البيضاء", from:"2026-11-20", to:"2026-11-30"},
-  {id:"winter", name:"موسم الشتاء",     from:"2026-12-01", to:"2027-02-15"}
+  {id:"school", name:"العودة للمدارس", from:"2026-08-16", to:"2026-09-20", anchor:null,
+   note:"نافذة تقديرية — لم يُعثر على تقويم رسمي معلن"},
+  {id:"nat",    name:"اليوم الوطني",   from:"2026-09-13", to:"2026-09-26", anchor:"2026-09-23",
+   note:"اليوم الوطني ٩٦ — الأربعاء ٢٣ سبتمبر ٢٠٢٦ (تاريخ ثابت سنوياً)"},
+  {id:"wf",     name:"الجمعة البيضاء", from:"2026-11-23", to:"2026-11-29", anchor:"2026-11-27",
+   note:"آخر جمعة في نوفمبر · التخفيضات تبدأ لدى بعض المتاجر من ٢٣ نوفمبر"},
+  {id:"winter", name:"موسم الشتاء",     from:"2026-12-01", to:"2027-02-14", anchor:null,
+   note:"نافذة تقديرية"},
+  {id:"found",  name:"يوم التأسيس",     from:"2027-02-15", to:"2027-02-23", anchor:"2027-02-22",
+   note:"يوم التأسيس — الاثنين ٢٢ فبراير ٢٠٢٧ (تاريخ ثابت سنوياً)"}
 ];
 const TODAY = new Date("2026-08-05");
 
@@ -1507,13 +1521,17 @@ function paintSeasons(){
   }
   const seas = SEASONS.map((s,i)=>{
     const a = tpos(s.from), b = tpos(s.to), on = c && c.season===s.id;
+    const anc = s.anchor ? `<div class="anchor" style="left:${tpos(s.anchor)}%" title="${s.name}: ${dfmt(s.anchor)}"></div>` : "";
     return `<div class="sea" style="left:${a}%;width:${Math.max(4,b-a)}%;background:var(${shade[i%4]});${on?"outline:2px solid var(--gold);outline-offset:2px":""}"
-      title="${s.name}: ${dfmt(s.from)} — ${dfmt(s.to)}">${s.name}</div>`;
+      title="${s.name}: ${dfmt(s.from)} — ${dfmt(s.to)}${s.note?" · "+s.note:""}">${s.name}</div>${anc}`;
   }).join("");
 
   let prep = "", msg = "";
   if(!p){ msg = "اختر منتجاً لعرض زمن تجهيزه مقابل نافذة الموسم."; }
   else if(!c){ msg = `<b>${p.name}</b> — لم تُفتح بوابة التقييم بعد (و٤)، فلا نافذة موسم ولا زمن تجهيز معتمد.`; }
+  else if(!c.lead){ // صفر هنا يعني «غير مقدَّر»، لا «جاهز فوراً»
+    msg = `<b>${p.name}</b> — لم يُقدَّر زمن التجهيز بعد؛ يأتي من وكيل التوريد (و٥). لا يمكن الحكم على الموسم بدونه.`;
+  }
   else {
     const ready = new Date(TODAY.getTime() + c.lead*DAY);
     const sea = c.season ? SEASONS.find(s=>s.id===c.season) : null;
