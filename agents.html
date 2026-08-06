@@ -1056,6 +1056,12 @@ const CVR_GLOBAL = 2.0;
 // التعلّم — دونه التذبذب أكبر من الإشارة. و١٠٠ لكل متغيّر لدلالة إحصائية في اختبار A/B.
 // فميزانية الاختبار ليست رقماً اختيارياً: هي ثمن الوصول إلى نتيجة تُقرأ.
 const SIGNAL_MIN = 50, SIGNAL_AB = 100;
+// نسب الاسترجاع المرصودة عالمياً ٢٠٢٦: المتوسط الإلكتروني ١٩–٢٠.٥٪، مقابل ٥–٨.٩٪
+// في المتاجر الفعلية. وحسب الفئة: ملابس ٢٠–٤٠ · أحذية ١٧–٣٠ · إلكترونيات ٨–١٥ · تجميل ٤–١٢.
+// وكل هذا قبل رفض الاستلام في الدفع عند الاستلام — وهو منفصل وغير منشور (جولة ١٢).
+const RETURN_ONLINE_AVG = [19, 20.5];
+const RETURN_BANDS = "ملابس ٢٠–٤٠٪ · أحذية ١٧–٣٠٪ · إلكترونيات ٨–١٥٪ · تجميل ٤–١٢٪";
+const RETURN_FLOOR = 8;   // دون أدنى نطاق كل الفئات عدا التجميل
 // المسجّل في ضريبة القيمة المضافة (إلزامي فوق ٣٧٥ ألف ر.س مبيعات سنوية):
 //   · السعر المعروض للمستهلك شامل الضريبة ⟵ الإيراد = السعر ÷ ١.١٥، والفرق يُورَّد للهيئة
 //   · ضريبة الاستيراد قابلة للخصم ⟵ ليست تكلفة
@@ -1093,11 +1099,12 @@ function unit(p){
       ? (p.orders>0 ? c.sallaMonthly/p.orders : null)
       : (c.salla||0);
   const lmLow = typeof c.lastmile==="number" && c.lastmile < LASTMILE_FLOOR && !c.lastmileContract;
+  const retLow = typeof c.retpct==="number" && c.retpct < RETURN_FLOOR && !c.retpctActual;
   const retCost = (c.buy+c.intl+c.lastmile) * (c.retpct/100);
   const total = c.buy+c.intl+c.duty+(vatIn||0)+(sl||0)+gw+c.lastmile+retCost;
   const margin = revenue-total;                    // الهامش على الإيراد لا على السعر المعروض
   return {retCost, total, margin, pct: margin/revenue*100, cpaMax: margin,
-          gw, sl, reg, revenue, vatOut, vatIn, payBasis, payPartial, lmLow};
+          gw, sl, reg, revenue, vatOut, vatIn, payBasis, payPartial, lmLow, retLow};
 }
 function lines(p){
   const c=p.cost, u=unit(p);
@@ -1113,7 +1120,9 @@ function lines(p){
     ["توصيل للعميل", c.lastmile, u.lmLow
         ? `دون أدنى سعر منشور (${fmt(LASTMILE_FLOOR)} ر.س) — يلزمه عقد شحن فعلي`
         : (c.lastmileContract ? "عقد شركة التوصيل — مثبَّت" : "عقد شركة التوصيل")],
-    ["استرجاع وتوالف ("+AR1.format(c.retpct)+"٪)", u.retCost, "بيانات ما بعد البيع"]
+    ["استرجاع وتوالف ("+AR1.format(c.retpct)+"٪)", u.retCost, u.retLow
+        ? `دون كل نطاق مرصود — المتوسط الإلكتروني ${AR1.format(RETURN_ONLINE_AVG[0])}–${AR1.format(RETURN_ONLINE_AVG[1])}٪`
+        : (c.retpctActual ? "بيانات ما بعد البيع الفعلية" : "بيانات ما بعد البيع")]
   ];
 }
 
@@ -1434,9 +1443,15 @@ function paintEcon(){
       <tr><td><b>التكلفة الكاملة للوحدة</b></td><td><b>${AR1.format(u.total)}</b></td><td class="${(u.sl===null||u.payPartial||u.lmLow)?"st-warn":""}">${(()=>{
         const g=[]; if(u.sl===null) g.push("نصيب الاشتراك");
         if(u.payPartial) g.push("مزيج الدفع"); if(u.lmLow) g.push("عقد الشحن");
+        if(u.retLow) g.push("نسبة الاسترجاع");
         return g.length ? `غير مثبَّت: ${g.join(" · ")} — الهامش أدناه متفائل` : "مجموع محسوب";
       })()}</td></tr></tbody>
     </table></div>
+
+    <div style="color:var(--mut);font-size:11.5px;margin:-4px 0 10px">
+      نسب الاسترجاع المرصودة ٢٠٢٦: ${RETURN_BANDS} · المتوسط الإلكتروني
+      ${AR1.format(RETURN_ONLINE_AVG[0])}–${AR1.format(RETURN_ONLINE_AVG[1])}٪ مقابل ٥–٨.٩٪ في المتاجر الفعلية
+      · وكل ذلك <b>قبل</b> رفض الاستلام في الدفع عند الاستلام</div>
 
     <div class="scen">
       <div class="sc base"><div class="l">🛡️ متحفظ <span style="color:var(--gold)">· القرار</span></div><div class="n ${cons>0?'st-good':'st-crit'}">${sar(cons)}</div></div>
