@@ -589,7 +589,10 @@ const SEASONS_DEMO = [
   {id:"found",  name:"يوم التأسيس",     from:"2027-02-15", to:"2027-02-23", anchor:"2027-02-22",
    note:"يوم التأسيس — الاثنين ٢٢ فبراير ٢٠٢٧ (تاريخ ثابت سنوياً)"}
 ];
-const TODAY = new Date("2026-08-05");
+// «اليوم» مصدر واحد لكل عدّادات المهل والبوابات — يُؤخذ من ساعة الجهاز.
+// ولقطة قابلة للتكرار: meta.asOf يثبّته على تاريخ محدّد ويُعلَن ذلك على اللوحة.
+let TODAY = (()=>{ const d = new Date(); d.setHours(0,0,0,0); return d; })();
+let AS_OF_PINNED = null;
 
 /* بوابات نظامية بمواعيد ثابتة — تُعرض على نفس التقويم لأن الموسم وحده
    لا يحكم التوقيت: شهادة تنتهي أو معيار يصير إلزامياً يوقف الشحنة كذلك. */
@@ -923,6 +926,9 @@ function validateBundle(b){
 }
 
 function applyBundle(b, mode){
+  const pin = b.meta && b.meta.asOf ? new Date(b.meta.asOf) : null;
+  AS_OF_PINNED = (pin && !isNaN(pin)) ? b.meta.asOf : null;
+  TODAY = AS_OF_PINNED ? pin : (()=>{ const d=new Date(); d.setHours(0,0,0,0); return d; })();
   REGION_BASE=b.regions; PRODUCTS=b.products; DOSSIER=b.dossier||{};
   AGENTS=b.agents; QUOTA=b.quota; SEASONS=b.seasons;
   DATA_MODE=mode; DATA_META=b.meta||{};
@@ -1543,7 +1549,7 @@ function paintVOC(){
 /* ---- قرارات المدير ---- */
 function paintDecisions(){
   const vis = visibleProducts();
-  const today = new Date("2026-08-05");
+  const today = TODAY;
   $("#decisions").innerHTML = vis.map(p=>{
     const d = DEC[p.dec] || DEC.wait;
     const top = Object.entries(p.w).sort((a,b)=>b[1]-a[1])[0];
@@ -1887,6 +1893,10 @@ function paintDossier(){
 
 /* ---- التشغيل ---- */
 function render(){
+  // الترويسة تُرسم من TODAY نفسه، وإلا عاد «اليومان» من باب آخر
+  $("#today").innerHTML = TODAY.toLocaleDateString("ar-u-nu-latn-ca-gregory",{weekday:"long",day:"numeric",month:"long",year:"numeric"})
+    + (AS_OF_PINNED ? ` <span class="st-warn">· لقطة مثبّتة على ${maybeDate(AS_OF_PINNED)}</span>` : "")
+    + " · الحصة الأسبوعية " + fmt(QUOTA.used) + " من " + fmt(QUOTA.cap);
   paintToggles(); paintFilters(); paintKPIs();
   paintMap(); paintRank(); paintRankHot();
   paintFunnel(); paintCards();
@@ -1899,8 +1909,6 @@ function render(){
 
 (async ()=>{
   await boot();
-  $("#today").textContent = new Date().toLocaleDateString("ar-u-nu-latn-ca-gregory",{weekday:"long",day:"numeric",month:"long",year:"numeric"})
-    + " · الحصة الأسبوعية " + fmt(QUOTA.used) + " من " + fmt(QUOTA.cap);
   buildMap(); bindTop(); bindData(); paintDataBar(); render();
 })();
 </script>
