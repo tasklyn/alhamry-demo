@@ -417,6 +417,11 @@
       </div></div>
       <div class="tl" id="tl"></div>
       <div class="seasonmsg" id="seasonmsg"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+        <h3 style="font-size:13.5px">📌 سجلّ المراجع — أعمار الأرقام السوقية</h3>
+        <div class="note" style="margin-bottom:8px">كل ثابت سوقي بتاريخ رصده. المتقادم يُعلَّم ولا يُحذف — والقرار يُتخذ بمعرفة عمر الرقم.</div>
+        <div style="overflow-x:auto"><table id="benchtbl"></table></div>
+      </div>
     </div>
 
     <!-- ملف المنتج -->
@@ -1073,6 +1078,26 @@ const RETURN_FLOOR = 8;   // دون أدنى نطاق كل الفئات عدا �
 // لكل شيء لم يعد صالحاً؛ يُثبَّت الرمز على أداة التعرفة لدى هيئة الزكاة والضريبة والجمارك.
 // وضريبة الاستيراد ١٥٪ تُحتسب على CIF + الرسم الجمركي، لا على الثمن وحده.
 const DUTY_RANGE = [5, 25];
+
+/* ============================================================
+   سجلّ المراجع: كل ثابت سوقي على اللوحة بتاريخ رصده وجهته.
+   الرقم بلا تاريخ رصد يبدو حيّاً وهو ساكن — وهذا ما كشفته الجولة ٢٠ في «اليوم».
+   ما تجاوز عمرُه الحدَّ يُعلَّم «متقادم» ولا يُحذف: التقادم معلومة لا خطأ.
+   ============================================================ */
+const BENCH = [
+  {k:"نطاق CPA السعودي",        v:"٢٥–١٨٠ ر.س",   on:"2026-08-06", src:"وكالات أداء — إنستقرام/ميتا", max:6},
+  {k:"نطاق تكلفة النقرة",       v:"٠.٤٠–٢.٥٠ ر.س", on:"2026-08-06", src:"وكالات أداء", max:6},
+  {k:"متوسط التحويل العالمي",   v:"٢.٠٪",          on:"2026-08-06", src:"تقارير تجارة إلكترونية", max:12},
+  {k:"نسب الاسترجاع حسب الفئة", v:"١٩–٢٠.٥٪ عام",  on:"2026-08-06", src:"تقارير تجارة إلكترونية", max:12},
+  {k:"أدنى سعر شحن داخلي",      v:"٣٠ ر.س",        on:"2026-08-06", src:"أرامكس · ناقل · زاجل", max:12},
+  {k:"حصة الدفع عند الاستلام",  v:"٧٠–٨٠٪",        on:"2026-08-06", src:"تقارير السوق", max:12},
+  {k:"عتبة الإشارة",            v:"٥٠ · ١٠٠ تحويل", on:"2026-08-06", src:"ممارسات منصات الإعلان", max:24},
+  {k:"نطاق الرسم الجمركي",      v:"٥–٢٥٪",         on:"2026-08-06", src:"التعرفة المتكاملة (عُدّلت أواخر ٢٠٢٥)", max:12},
+  {k:"سكان المناطق",            v:"٣٢٬١٧٥٬٢٢٤",    on:"2022-05-01", src:"تعداد السعودية — الهيئة العامة للإحصاء", max:120},
+  {k:"دخل الأسرة حسب المنطقة",  v:"الشرقية ١٧٬٩٠٠ · الرياض ١٦٬٠١٠", on:"2018-01-01",
+   src:"مسح دخل وإنفاق الأسرة — الهيئة العامة للإحصاء", max:60}
+];
+const benchAgeMonths = on => Math.floor((TODAY - new Date(on)) / (1000*60*60*24*30.44));
 // المسجّل في ضريبة القيمة المضافة (إلزامي فوق ٣٧٥ ألف ر.س مبيعات سنوية):
 //   · السعر المعروض للمستهلك شامل الضريبة ⟵ الإيراد = السعر ÷ ١.١٥، والفرق يُورَّد للهيئة
 //   · ضريبة الاستيراد قابلة للخصم ⟵ ليست تكلفة
@@ -1290,7 +1315,7 @@ function paintMap(){
           : `التوزيع المقيس لـ«${p.name}» — اضغط منطقة لفلترة كل اللوحة · `)
         : "اضغط منطقة لفلترة كل اللوحة · ")
     + `<span style="color:var(--mut)">${METRIC_SRC[state.metric]}</span>`
-    + (derived ? `<div style="color:var(--mut);font-size:11.5px;margin-top:3px">السكان مؤشر منحاز للسلع الاختيارية: أعلى دخل أسرة في الشرقية (١٧٬٩٠٠ ر.س) ثم الرياض (١٦٬٠١٠) — الإحصاء ٢٠١٨. حصة السكان تبخس المناطق الأعلى دخلاً.</div>` : "");
+    + (derived ? `<div style="color:var(--mut);font-size:11.5px;margin-top:3px">السكان مؤشر منحاز للسلع الاختيارية: أعلى دخل أسرة في الشرقية (١٧٬٩٠٠ ر.س) ثم الرياض (١٦٬٠١٠) — الإحصاء ٢٠١٨، <span class="st-crit">أي قبل ${fmt(Math.floor(benchAgeMonths("2018-01-01")/12))} سنوات</span>. حصة السكان تبخس المناطق الأعلى دخلاً، والفارق نفسه قد تغيّر.</div>` : "");
   // جدول بديل (وصول)
   $("#maptbl").innerHTML = `<table style="margin-top:10px"><thead><tr><th>المنطقة</th><th>${METRIC_LABEL[state.metric]}</th><th>متوسط الطلب</th><th>الاسترجاع</th></tr></thead><tbody>`+
     MAP.regions.map((r,i)=>`<tr><td><b>${r.ar}</b></td><td>${metricText(vals[i])}</td><td>${sar(REGION_BASE[r.code].aov)}</td><td>${AR1.format(REGION_BASE[r.code].ret)}٪</td></tr>`).join("")+
@@ -1762,6 +1787,21 @@ function paintSeasons(){
          ${GATES_ACTIVE.map(x=>`<li>${x}</li>`).join("")}</ul>`;
 }
 
+/* ---- سجلّ المراجع ---- */
+function paintBench(){
+  const rows = BENCH.map(b=>({...b, age:benchAgeMonths(b.on)}))
+                    .sort((a,b)=> (b.age/b.max) - (a.age/a.max));
+  $("#benchtbl").innerHTML =
+    `<thead><tr><th>المرجع</th><th>القيمة</th><th>رُصد</th><th>العمر</th><th>الجهة</th></tr></thead><tbody>`
+    + rows.map(b=>{
+        const stale = b.age > b.max;
+        return `<tr><td><b>${b.k}</b></td><td>${b.v}</td><td>${maybeDate(b.on)}</td>
+          <td class="${stale?"st-crit":(b.age > b.max*0.66 ? "st-warn":"")}">${
+            b.age<1 ? "هذا الشهر" : fmt(b.age)+" شهراً"}${stale?" · متقادم":""}</td>
+          <td style="color:var(--mut)">${b.src}</td></tr>`;
+      }).join("") + `</tbody>`;
+}
+
 /* ---- ملف المنتج: مخرجات كل وكيل ---- */
 const TABS = [
   {id:"scout", name:"الرصد",             need:0, ag:"و١–٣"},
@@ -1903,7 +1943,7 @@ function render(){
   if(activeProduct()){ paintEcon(); paintVOC(); }
   else { $("#econ").innerHTML = `<div class="phead"><div><h3>🧮 بطاقة القرار</h3><div class="note">اختر منتجاً من البطاقات أو الجدول لعرض حسبة الجدوى</div></div></div>`;
          $("#voc").innerHTML = `<div style="color:var(--mut);font-size:12.5px">اختر منتجاً لعرض تصنيف تواصل عملائه.</div>`; $("#rule3").innerHTML=""; }
-  paintSeasons(); paintDossier();
+  paintSeasons(); paintBench(); paintDossier();
   paintDecisions(); paintAgents();
 }
 
