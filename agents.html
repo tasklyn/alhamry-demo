@@ -244,6 +244,10 @@
   .tl .axis{position:relative;height:20px;border-bottom:1px solid var(--line)}
   .tl .mo{position:absolute;top:2px;font-size:10.5px;color:var(--mut);transform:translateX(-50%);white-space:nowrap}
   .tl .band{position:relative;height:26px;margin-top:7px}
+  /* شريط البوابات النظامية: مواعيد ثابتة تُوقف الشحنة، منفصلة عن نوافذ المواسم */
+  .tl .gband{position:relative;height:13px;margin-top:5px}
+  .tl .gate{position:absolute;top:0;width:3px;height:13px;border-radius:2px;cursor:help}
+  .tl .gate.warn{background:var(--warn)} .tl .gate.crit{background:var(--crit)}
   .tl .sea{position:absolute;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;
            font-size:11px;overflow:hidden;white-space:nowrap;padding:0 7px;color:#fff}
   .tl .now{position:absolute;top:0;bottom:0;width:2px;background:var(--gold);z-index:4}
@@ -579,6 +583,21 @@ const SEASONS_DEMO = [
    note:"يوم التأسيس — الاثنين ٢٢ فبراير ٢٠٢٧ (تاريخ ثابت سنوياً)"}
 ];
 const TODAY = new Date("2026-08-05");
+
+/* بوابات نظامية بمواعيد ثابتة — تُعرض على نفس التقويم لأن الموسم وحده
+   لا يحكم التوقيت: شهادة تنتهي أو معيار يصير إلزامياً يوقف الشحنة كذلك. */
+const GATES = [
+  {d:"2026-08-31", t:"آخر موعد لقبول طلبات المكيفات بالمعيار القديم", sev:"warn"},
+  {d:"2026-11-01", t:"SASO 3114:2026 يصير إلزامياً لأجهزة تقنية المعلومات (يحل محل GEN-002)", sev:"crit"},
+  {d:"2026-12-01", t:"إلزام معياري المكيفات SASO 2663:2025 و2874:2025", sev:"crit"},
+  {d:"2027-01-01", t:"SASO 2944:2023 — نداء الطوارئ للمركبات الكهربائية", sev:"warn"}
+];
+// سارية فعلاً منذ ما قبل اليوم (تُعرض كنص لا كعلامة على المحور):
+const GATES_ACTIVE = [
+  "١٨ يونيو ٢٠٢٦ — منتجات الملحق (١) تحتاج إقرار منتج معتمداً من وزارة الصناعة قبل شهادة الشحنة",
+  "١ يوليو ٢٠٢٦ — كل منتج إلكتروني يتقدّم لشهادة مطابقة جديدة يلزمه قسم امتثال بالعربية على موقع الشركة الرسمي",
+  "٣١ مارس ٢٠٢٧ — شهادات GEN-002 القائمة تتوقف (خارج مدى التقويم المعروض)"
+];
 
 /* ============================================================
    مخرجات الوكلاء لكل منتج — تُملأ فقط للمراحل التي عبرها المنتج.
@@ -1548,13 +1567,30 @@ function paintSeasons(){
       msg = `<span class="st-good">✓</span> <b>${p.name}</b> — الجاهزية <b>${dfmt(ready)}</b> قبل بداية «${sea.name}» (<b>${dfmt(sea.from)}</b>) بـ<b>${fmt(slack)} يوم</b>.`;
     }
   }
+  const gates = GATES.filter(g=>new Date(g.d)>=T0 && new Date(g.d)<=T1).map(g=>{
+    const days = Math.round((new Date(g.d)-TODAY)/DAY);
+    return `<div class="gate ${g.sev}" style="left:${tpos(g.d)}%"
+      title="${dfmt(g.d)} — ${g.t}${days>=0?` · بعد ${fmt(days)} يوم`:" · مضى"}"></div>`;
+  }).join("");
+  const soon = GATES.map(g=>({g, days:Math.round((new Date(g.d)-TODAY)/DAY)}))
+                    .filter(x=>x.days>=0).sort((a,b)=>a.days-b.days)[0];
+
   $("#tl").innerHTML =
     `<div class="axis">${months}<div class="now" style="left:${tpos(TODAY)}%"></div></div>
+     <div class="gband">${gates}</div>
      <div class="band">${seas}<div class="now" style="left:${tpos(TODAY)}%"></div></div>
      <div class="band" style="height:22px">${prep}<div class="now" style="left:${tpos(TODAY)}%"></div>
        <span class="nowlab" style="left:${tpos(TODAY)}%;top:22px">اليوم</span></div>
      <div style="height:14px"></div>`;
-  $("#seasonmsg").innerHTML = msg;
+  $("#seasonmsg").innerHTML = msg
+    + (soon ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">
+        <span class="${soon.g.sev==="crit"?"st-crit":"st-warn"}">⚑</span>
+        <b>أقرب بوابة نظامية:</b> ${dfmt(soon.g.d)} — ${soon.g.t}
+        <b class="${soon.days<=30?"st-crit":""}">· بعد ${fmt(soon.days)} يوم</b></div>` : "")
+    // كل بند في سطره: وصلها بفاصل واحد يلصق رقم البند التالي بآخر كلمة قبله (خلط اتجاهات)
+    + `<div style="margin-top:6px;color:var(--mut);font-size:11.5px">سارية الآن:</div>
+       <ul class="lst" style="font-size:11.5px;color:var(--mut);margin-top:2px">
+         ${GATES_ACTIVE.map(x=>`<li>${x}</li>`).join("")}</ul>`;
 }
 
 /* ---- ملف المنتج: مخرجات كل وكيل ---- */
