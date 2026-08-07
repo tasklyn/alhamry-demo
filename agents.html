@@ -589,10 +589,14 @@ const SEASONS_DEMO = [
    note:"اليوم الوطني ٩٦ — الأربعاء ٢٣ سبتمبر ٢٠٢٦ (تاريخ ثابت سنوياً)"},
   {id:"wf",     name:"الجمعة البيضاء", from:"2026-11-23", to:"2026-11-29", anchor:"2026-11-27",
    note:"آخر جمعة في نوفمبر · التخفيضات تبدأ لدى بعض المتاجر من ٢٣ نوفمبر"},
-  {id:"winter", name:"موسم الشتاء",     from:"2026-12-01", to:"2027-02-14", anchor:null,
-   note:"نافذة تقديرية"},
+  {id:"winter", name:"موسم الشتاء",     from:"2026-12-01", to:"2027-02-07", anchor:null,
+   note:"نافذة تقديرية — تُغلق قبل رمضان لأن رمضان يبتلع ما بعده"},
+  {id:"ram",    name:"رمضان ١٤٤٨",      from:"2027-01-25", to:"2027-03-08", anchor:"2027-02-08",
+   note:"١ رمضان ١٤٤٨ = الاثنين ٨ فبراير ٢٠٢٧ (أم القرى · قد يتغيّر يوماً بالرؤية) · الشراء يبدأ قبل الشهر بأسبوعين"},
   {id:"found",  name:"يوم التأسيس",     from:"2027-02-15", to:"2027-02-23", anchor:"2027-02-22",
-   note:"يوم التأسيس — الاثنين ٢٢ فبراير ٢٠٢٧ (تاريخ ثابت سنوياً)"}
+   note:"الاثنين ٢٢ فبراير ٢٠٢٧ (تاريخ ثابت سنوياً) — ويقع هذا العام داخل رمضان ١٤٤٨"},
+  {id:"eid",    name:"عيد الفطر",       from:"2027-02-27", to:"2027-03-12", anchor:"2027-03-09",
+   note:"عيد الفطر ١٤٤٨ ≈ الثلاثاء ٩ مارس ٢٠٢٧ · ذروة الشراء العشر الأواخر من رمضان"}
 ];
 // «اليوم» مصدر واحد لكل عدّادات المهل والبوابات — يُؤخذ من ساعة الجهاز.
 // ولقطة قابلة للتكرار: meta.asOf يثبّته على تاريخ محدّد ويُعلَن ذلك على اللوحة.
@@ -1722,7 +1726,7 @@ function paintToggles(){
 /* ---- الموسمية وزمن التجهيز ---- */
 const stageIdx = id => STAGES.findIndex(s=>s.id===id);
 const DAY = 86400000;
-const T0 = new Date("2026-08-01"), T1 = new Date("2027-02-28");
+const T0 = new Date("2026-08-01"), T1 = new Date("2027-03-20");
 const tpos = d => Math.max(0, Math.min(100, ((new Date(d)-T0)/(T1-T0))*100));
 const dfmt = d => new Date(d).toLocaleDateString("ar-u-nu-latn-ca-gregory",{day:"numeric",month:"short"});
 const maybeDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s) ? dfmt(s) : s;  // بعض القيم نص («وصلت …») لا تاريخ صرف
@@ -1735,10 +1739,21 @@ function paintSeasons(){
     months += `<span class="mo" style="left:${tpos(m)}%">${m.toLocaleDateString("ar-u-nu-latn-ca-gregory",{month:"short"})}</span>`;
     m.setMonth(m.getMonth()+1);
   }
-  const seas = SEASONS.map((s,i)=>{
+  // المواسم تتداخل فعلاً (رمضان يبتلع يوم التأسيس ونصف نافذة العيد)، فتُوزَّع على صفوف
+  // بدل أن يركب بعضها بعضاً: كل موسم في أول صف انتهى شاغلُه قبل بدايته.
+  const laneEnd = [];
+  const placed = SEASONS.map((s,i)=>{
+    const f = new Date(s.from), t = new Date(s.to);
+    let ln = laneEnd.findIndex(e => e <= f);
+    if(ln < 0){ ln = laneEnd.length; }
+    laneEnd[ln] = t;
+    return {s, i, ln};
+  });
+  const LANES = Math.max(1, laneEnd.length);
+  const seas = placed.map(({s,i,ln})=>{
     const a = tpos(s.from), b = tpos(s.to), on = c && c.season===s.id;
-    const anc = s.anchor ? `<div class="anchor" style="left:${tpos(s.anchor)}%" title="${s.name}: ${dfmt(s.anchor)}"></div>` : "";
-    return `<div class="sea" style="left:${a}%;width:${Math.max(4,b-a)}%;background:var(${shade[i%4]});${on?"outline:2px solid var(--gold);outline-offset:2px":""}"
+    const anc = s.anchor ? `<div class="anchor" style="left:${tpos(s.anchor)}%;top:${ln*29-3}px" title="${s.name}: ${dfmt(s.anchor)}"></div>` : "";
+    return `<div class="sea" style="left:${a}%;width:${Math.max(4,b-a)}%;top:${ln*29}px;background:var(${shade[i%4]});${on?"outline:2px solid var(--gold);outline-offset:2px":""}"
       title="${s.name}: ${dfmt(s.from)} — ${dfmt(s.to)}${s.note?" · "+s.note:""}">${s.name}</div>${anc}`;
   }).join("");
 
@@ -1776,7 +1791,7 @@ function paintSeasons(){
   $("#tl").innerHTML =
     `<div class="axis">${months}<div class="now" style="left:${tpos(TODAY)}%"></div></div>
      <div class="gband">${gates}</div>
-     <div class="band">${seas}<div class="now" style="left:${tpos(TODAY)}%"></div></div>
+     <div class="band" style="height:${LANES*29-5}px">${seas}<div class="now" style="left:${tpos(TODAY)}%"></div></div>
      <div class="band" style="height:22px">${prep}<div class="now" style="left:${tpos(TODAY)}%"></div>
        <span class="nowlab" style="left:${tpos(TODAY)}%;top:22px">اليوم</span></div>
      <div style="height:14px"></div>`;
