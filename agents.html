@@ -1216,7 +1216,15 @@ function unit(p){
       ? (p.orders>0 ? c.sallaMonthly/p.orders : null)
       : (c.salla||0);
   // الرسم والضريبة يُشتقّان من النسبة والقاعدة، فلا يدرجان مستقلَّين ويتباعدان عنها
-  const cif = (c.buy||0) + (c.intl||0);
+  // القيمة الجمركية ليست «ثمن + شحن». قاعدة التقييم تضيف إلى الثمن المدفوع:
+  // التعبئة والحاويات · العمولات والسمسرة (عدا عمولة الشراء) · المساعدات (assists:
+  // ما نزوّد به المصنع مجاناً — تصاميم وقوالب وأفلام طباعة) · الإتاوات ورسوم
+  // الترخيص · والنقل والتأمين حتى مكان الاستيراد. وما لم يُدرَج منها لا يسقط،
+  // بل يظهر عند التخليص فيرفع الرسم وضريبة الاستيراد معاً.
+  const cifAdds = (c.pack||0) + (c.assist||0) + (c.royalty||0) + (c.commission||0);
+  const cif = (c.buy||0) + (c.intl||0) + cifAdds;
+  // إضافات التقييم مجهولة لا معدومة ما لم يُصرَّح بأنها صفر
+  const cifPartial = cifAdds===0 && c.cifAddsKnown!==true;
   const dutyPct = typeof c.dutyPct==="number" ? c.dutyPct : null;
   const duty = dutyPct!==null ? cif*dutyPct/100 : (c.duty||0);
   const dutyDrift = dutyPct!==null && typeof c.duty==="number"
@@ -1230,7 +1238,7 @@ function unit(p){
   const margin = revenue-total;                    // الهامش على الإيراد لا على السعر المعروض
   return {retCost, total, margin, pct: margin/revenue*100, cpaMax: margin,
           gw, sl, reg, revenue, vatOut, vatIn:vatCost, payBasis, payPartial, lmLow, retLow,
-          duty, dutyPct, dutyDrift, cif};
+          duty, dutyPct, dutyDrift, cif, cifPartial};
 }
 function lines(p){
   const c=p.cost, u=unit(p);
@@ -1238,7 +1246,7 @@ function lines(p){
     ["شراء الوحدة", c.buy, "عرض مورد مباشر"],
     ["شحن دولي", c.intl, "عرض شركة شحن"],
     ["رسوم جمركية", u.duty, u.dutyPct!==null
-        ? `${AR1.format(u.dutyPct)}٪ من CIF (${AR1.format(u.cif)})${u.dutyDrift?" — الرقم المدرَج يخالف النسبة":""}`
+        ? `${AR1.format(u.dutyPct)}٪ من CIF (${AR1.format(u.cif)})${u.dutyDrift?" — الرقم المدرَج يخالف النسبة":""}${u.cifPartial?" · <span class=\"st-warn\">CIF ناقص: بلا تعبئة ولا مساعدات ولا إتاوات</span>":""}`
         : `النسبة غير مسجّلة — النطاق ${fmt(DUTY_RANGE[0])}–${fmt(DUTY_RANGE[1])}٪ والتعرفة عُدّلت أواخر ٢٠٢٥`],
     ["ضريبة الاستيراد", u.vatIn, u.reg ? "مستردّة — المتجر مسجّل ضريبياً"
         : `١٥٪ على CIF + الرسم الجمركي (${AR1.format(u.cif + u.duty)})`],
