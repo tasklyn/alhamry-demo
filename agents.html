@@ -271,6 +271,15 @@
               border-inline:5px solid transparent;border-top:7px solid var(--ink)}
   .tl .nowlab{position:absolute;font-size:10.5px;color:var(--gold);transform:translateX(-50%);white-space:nowrap}
   .tl .prep{position:absolute;height:20px;border-radius:6px;display:flex;align-items:center;padding:0 7px;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden}
+  /* مسار النقد: مراحل متتابعة، لونها من اتجاه النقد لا من أهميتها */
+  .cashrow{display:flex;gap:4px;align-items:stretch;overflow-x:auto;padding-bottom:2px}
+  .cst{flex:1 1 0;min-width:96px;border:1px solid var(--line);border-radius:9px;padding:7px 8px;background:var(--surf2)}
+  .cst .ct{font-size:11.5px;color:var(--ink);font-weight:600;line-height:1.35}
+  .cst .cd{font-size:11px;color:var(--mut);margin-top:3px}
+  .cst.out{border-color:var(--crit);background:color-mix(in srgb,var(--crit) 9%,var(--surf2))}
+  .cst.in{border-color:var(--good);background:color-mix(in srgb,var(--good) 9%,var(--surf2))}
+  .cst.risk{border-color:var(--serious);background:color-mix(in srgb,var(--serious) 12%,var(--surf2))}
+  .cashnote{font-size:11.5px;color:var(--mut);margin-top:8px;line-height:1.7}
   .seasonmsg{font-size:12.5px;margin-top:10px;padding:9px 11px;border-radius:11px;border:1px solid var(--line);background:var(--surf2);color:var(--ink2)}
   .seasonmsg b{color:var(--ink)}
 
@@ -425,6 +434,11 @@
       </div></div>
       <div class="tl" id="tl"></div>
       <div class="seasonmsg" id="seasonmsg"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+        <h3 style="font-size:13.5px">💧 مسار النقد — من الدفع إلى استرداده</h3>
+        <div class="note" style="margin-bottom:8px">ليس تقويماً: لا تواريخ له، بل تسلسلٌ يمرّ به <b>كل أمر شراء</b>. المدد مشتقّة من مراجع اللوحة، والقاع هو موضع أكبر تركّز للمخاطر.</div>
+        <div id="cash"></div>
+      </div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
         <h3 style="font-size:13.5px">📌 سجلّ المراجع — أعمار الأرقام السوقية</h3>
         <div class="note" style="margin-bottom:8px">كل ثابت سوقي بتاريخ رصده. المتقادم يُعلَّم ولا يُحذف — والقرار يُتخذ بمعرفة عمر الرقم.</div>
@@ -1928,6 +1942,27 @@ function paintSeasons(){
        </div>`;
 }
 
+/* مسار النقد: كل مرحلة برقمها ومصدرها من جولة سابقة. لا تواريخ — الموضع
+   على المسار هو المعلومة، لا اليوم الذي يقع فيه. */
+const CASH = [
+  {t:"دفع المورد", d:"عند الطلب", k:"out", n:"المال يخرج كاملاً هنا"},
+  {t:"إنتاج وشحن", d:"٢٠–٤٥ يوماً", k:"", n:"جولة ١ · ويطول في الانقطاعات (٢٥ · ٢٦)"},
+  {t:"التخليص", d:"غير مقدَّر", k:"risk", n:"قاع المسار: المال كله مصروف ولا إيراد. وهنا تلتقي ثلاث مخاطر — الوسم (٣٦) · التصنيف (٣٨) · القيمة (٤١)"},
+  {t:"عرض وإعلان", d:"غير مقدَّر", k:"out", n:"إنفاق إضافي قبل أول بيع (١٤ · ١٧)"},
+  {t:"بيع وتوصيل", d:"—", k:"", n:"الإيراد لا يتحقّق بالطلب بل بالتسليم (١٢)"},
+  {t:"تحصيل عند الاستلام", d:"٧٠–٨٠٪ من الطلبات", k:"", n:"جولة ١٢"},
+  {t:"توريد الناقل للتاجر", d:"مرّتان أسبوعياً", k:"in", n:"الأحد والأربعاء — جولة ٤٢"},
+  {t:"نافذة الاسترجاع", d:"٧ أيام من الاستلام", k:"risk", n:"النقد المحصَّل قابل للارتداد، والردّ خلال ١٥ يوماً نقداً (٢٩)"}
+];
+function paintCash(){
+  const el = $("#cash"); if(!el) return;
+  el.innerHTML = `<div class="cashrow">${CASH.map(c=>
+    `<div class="cst ${c.k}" title="${c.n}"><div class="ct">${c.t}</div><div class="cd">${c.d}</div></div>`).join("")}</div>
+    <div class="cashnote">أقصر دورة ممكنة بمراجع اللوحة: <b>٢٠–٤٥ يوماً</b> قبل أن يعود أول ريال،
+    ثم تحصيلٌ لا يستقرّ إلا بعد <b>٧ أيام</b> من كل تسليم. والمدة الحقيقية أطول: التخليص غير مقدَّر،
+    وزمن البيع غير مقدَّر. <b>مصنَّف مشتقّاً</b> — لا مرصوداً.</div>`;
+}
+
 /* ---- سجلّ المراجع ---- */
 function paintBench(){
   const rows = BENCH.map(b=>({...b, age:benchAgeMonths(b.on)}))
@@ -2084,7 +2119,7 @@ function render(){
   if(activeProduct()){ paintEcon(); paintVOC(); }
   else { $("#econ").innerHTML = `<div class="phead"><div><h3>🧮 بطاقة القرار</h3><div class="note">اختر منتجاً من البطاقات أو الجدول لعرض حسبة الجدوى</div></div></div>`;
          $("#voc").innerHTML = `<div style="color:var(--mut);font-size:12.5px">اختر منتجاً لعرض تصنيف تواصل عملائه.</div>`; $("#rule3").innerHTML=""; }
-  paintSeasons(); paintBench(); paintDossier();
+  paintCash(); paintSeasons(); paintBench(); paintDossier();
   paintDecisions(); paintAgents();
 }
 
