@@ -1308,6 +1308,9 @@ const BENCH = [
   {k:"كلفة تحويل الثمن للمورد", v:"هامش صرف ١.٤–٢.٥٪ · رسم حوالة ٤٠–٨٥ ر.س · بنك مراسل ١٥–٣٥ $", on:"2026-08-08",
    src:"مقارنات مصرفية سعودية — والهامش لا يُفصَح عنه بنداً", max:12,
    basis:"نطاق سوق لا عرض بنك — يُثبَّت من كشف حوالة فعلية"},
+  {k:"كلفة الوجود — سنوياً", v:"سجل تجاري ١٢٠٠–٢٠٠٠ ر.س (إصدار <b>فوري</b> إلكترونياً غالباً) · غرفة تجارية ٢٠٠٠–٣٠٠٠ · سلة ٩٩٠", on:"2026-08-08",
+   src:"مكاتب خدمات ومحاماة — <b>ذوات مصلحة في الإصدار</b> (٥٥)، وتصرّح بأن الأرقام استرشادية وتختلف بالنشاط ورأس المال", max:12,
+   basis:"أول رقم على اللوحة لكلفة <b>أن تكون بائعاً</b> قبل بيع أي شيء — ويُثبَّت من البوابة الرسمية قبل السداد"},
   {k:"قمع الشراء — السعودية", v:"إضافة للسلة ٩.٠–٩.٥٪ · ترك السلة ٧٦.٠–٧٦.٥٪ ⟵ تحويل مشتقّ ٢.١–٢.٣٪", on:"2025-01-01",
    src:"بيانات سوق (ECDB) — أول مؤشر تحويل <b>سعودي</b> بعد استعارة المتوسط العالمي منذ جولة ١٥", max:24,
    basis:"مشتقّ من مؤشرين لا مرصود مباشرةً · ويناقض رقم «ترك السلة ٩٣٪ للشرق الأوسط وأفريقيا» — والأخصّ أولى"},
@@ -1356,6 +1359,11 @@ function unit(p){
   }
   // سلة اشتراك شهري ثابت لا نسبة على المبيعات: يُوزَّع على عدد طلبات الشهر.
   // بلا عدد طلبات لا يوجد نصيب وحدة — والقسمة على صفر ليست رقماً.
+  // الثابت السنوي (سجل · غرفة · اشتراكات) نصيبُه للوحدة يتضخّم عند قلّة الطلبات —
+  // وهو النمط نفسه الذي رصدته جولة ١٠ في اشتراك المنصة، وقاعدتُه هنا أكبر بأضعاف.
+  const fixedY = typeof c.fixedAnnual==="number" ? c.fixedAnnual : null;
+  const fx0 = (fixedY!==null && p.orders>0) ? fixedY/(p.orders*12) : 0;
+  const fixedMissing = fixedY===null;
   const sl = (typeof c.sallaMonthly==="number")
       ? (p.orders>0 ? c.sallaMonthly/p.orders : null)
       : (c.salla||0);
@@ -1390,11 +1398,11 @@ function unit(p){
   // والفحص. بندٌ لم يكن على اللوحة، والشحن الدولي لا يشمله والتوصيل المحلي يبدأ بعده.
   const port = typeof c.port==="number" ? c.port : null;
   const portMissing = port===null;
-  const total = fx + (port||0) + c.buy+c.intl+duty+(vatCost||0)+(sl||0)+gw+c.lastmile+retCost;
+  const total = fx + fx0 + (port||0) + c.buy+c.intl+duty+(vatCost||0)+(sl||0)+gw+c.lastmile+retCost;
   const margin = revenue-total;                    // الهامش على الإيراد لا على السعر المعروض
   return {retCost, total, margin, pct: margin/revenue*100, cpaMax: margin,
           gw, sl, reg, revenue, vatOut, vatIn:vatCost, payBasis, payPartial, lmLow, retLow,
-          duty, dutyPct, dutyDrift, cif, cifPartial, fx, fxPct, fxMissing, inc, port, portMissing};
+          duty, dutyPct, dutyDrift, cif, cifPartial, fx, fxPct, fxMissing, inc, port, portMissing, fx0, fixedY, fixedMissing};
 }
 function lines(p){
   const c=p.cost, u=unit(p);
@@ -1414,6 +1422,9 @@ function lines(p){
         : `النسبة غير مسجّلة — النطاق ${fmt(DUTY_RANGE[0])}–${fmt(DUTY_RANGE[1])}٪ والتعرفة عُدّلت أواخر ٢٠٢٥`],
     ["ضريبة الاستيراد", u.vatIn, u.reg ? "مستردّة — المتجر مسجّل ضريبياً"
         : `١٥٪ على CIF + الرسم الجمركي (${AR1.format(u.cif + u.duty)})`],
+    ["نصيب الثابت السنوي", u.fixedMissing ? null : u.fx0, u.fixedMissing
+        ? `<span class="st-warn">غير مسجَّل</span> — سجل تجاري ١٢٠٠–٢٠٠٠ + غرفة ٢٠٠٠–٣٠٠٠ سنوياً (٦٣). ونصيبه للوحدة يتضخّم بقلّة الطلبات: ١.٦٥ ر.س عند ٢١٢ طلباً شهرياً و<b>٢٥ ر.س عند ٢٠</b>`
+        : `${fmt(u.fixedY)} ر.س سنوياً ÷ ${fmt(p.orders*12)} طلباً`],
     ["رسوم سلة", u.sl, typeof c.sallaMonthly==="number"
         ? (p.orders>0 ? `اشتراك ${fmt(c.sallaMonthly)} ر.س شهرياً ÷ ${fmt(p.orders)} طلب` : "اشتراك ثابت — لا عدد طلبات بعد")
         : "جدول الرسوم"],
@@ -1741,7 +1752,7 @@ function paintEcon(){
     <div style="overflow-x:auto"><table>
       <thead><tr><th>بند التكلفة</th><th>ر.س</th><th>المصدر</th></tr></thead>
       <tbody>${L.map(l=>`<tr><td>${l[0]}</td><td><b>${l[1]===null?"—":AR1.format(l[1])}</b></td><td style="color:var(--mut)">${l[2]}</td></tr>`).join("")}
-      <tr><td><b>التكلفة الكاملة للوحدة</b></td><td><b>${AR1.format(u.total)}</b></td><td class="${(u.sl===null||u.payPartial||u.lmLow||u.cifPartial||u.fxMissing||!u.inc||u.portMissing)?"st-warn":""}">${(()=>{
+      <tr><td><b>التكلفة الكاملة للوحدة</b></td><td><b>${AR1.format(u.total)}</b></td><td class="${(u.sl===null||u.payPartial||u.lmLow||u.cifPartial||u.fxMissing||!u.inc||u.portMissing||u.fixedMissing)?"st-warn":""}">${(()=>{
         const g=[]; if(u.sl===null) g.push("نصيب الاشتراك");
         if(u.payPartial) g.push("مزيج الدفع"); if(u.lmLow) g.push("عقد الشحن");
         if(u.retLow) g.push("نسبة الاسترجاع");
@@ -1750,6 +1761,7 @@ function paintEcon(){
         if(u.fxMissing) g.push("كلفة تحويل الثمن");
         if(!u.inc) g.push("شرط التسليم");
         if(u.portMissing) g.push("الميناء والمناولة");
+        if(u.fixedMissing) g.push("الثابت السنوي");
         return g.length ? `غير مثبَّت: ${g.join(" · ")} — الهامش أدناه متفائل` : "مجموع محسوب";
       })()}</td></tr></tbody>
     </table></div>
@@ -2124,7 +2136,7 @@ function paintCash(){
 /* المسار الحرج: رتّبته الجولة ٦٢ حين تبيّن أن بوابة الترشيح (٦١) نفسها
    تقف خلف شرط أهلية مسجَّل منذ الجولة ٣٠ ولم يُعامَل بوصفه أول الطريق. */
 const CRIT = [
-  {n:"سجل تجاري يشمل التجارة الإلكترونية", w:"وزارة التجارة", r:"٣٠ · ٣١", why:"شراء الجملة لإعادة البيع نشاط تجاري — فالشرط من <b>النشاط</b> لا من المنصة"},
+  {n:"سجل تجاري يشمل التجارة الإلكترونية", w:"وزارة التجارة", r:"٣٠ · ٣١ · ٦٣", why:"شراء الجملة لإعادة البيع نشاط تجاري — فالشرط من <b>النشاط</b> لا من المنصة. و<b>إصداره فوري إلكترونياً غالباً</b> بـ<b>١٢٠٠–٢٠٠٠ ر.س</b> — فهو <b>لا يستهلك نافذة رمضان</b>"},
   {n:"حساب بنكي تجاري مرتبط به", w:"شرطٌ داخل التوثيق", r:"٣٠", why:"وقناةُ النقد كلها: التحصيل (١٢) والردّ النقدي (٢٩)"},
   {n:"توثيق المتجر على منصة الأعمال", w:"المركز السعودي للأعمال", r:"٣٠", why:"المعتمدة وحدها — لا «معروف»"},
   {n:"حساب في قناة جملة محلية", w:"ساري · سوق الجملة من سلة", r:"٥٤ · ٦٢", why:"أول منفذ لدليل نشاط حي بتاريخ — وهو ما تعذّر بحثاً (٦١)"},
