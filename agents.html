@@ -279,6 +279,8 @@
   .cst.out{border-color:var(--crit);background:color-mix(in srgb,var(--crit) 9%,var(--surf2))}
   .cst.in{border-color:var(--good);background:color-mix(in srgb,var(--good) 9%,var(--surf2))}
   .cst.risk{border-color:var(--serious);background:color-mix(in srgb,var(--serious) 12%,var(--surf2))}
+  .critlist{margin:0;padding-inline-start:20px;font-size:12.5px;line-height:1.85}
+  .critlist li{margin-bottom:7px}
   .cashnote{font-size:11.5px;color:var(--mut);margin-top:8px;line-height:1.7}
   .seasonmsg{font-size:12.5px;margin-top:10px;padding:9px 11px;border-radius:11px;border:1px solid var(--line);background:var(--surf2);color:var(--ink2)}
   .seasonmsg b{color:var(--ink)}
@@ -438,6 +440,11 @@
         <h3 style="font-size:13.5px">💧 مسار النقد — من الدفع إلى استرداده</h3>
         <div class="note" style="margin-bottom:8px">ليس تقويماً: لا تواريخ له، بل تسلسلٌ يمرّ به <b>كل أمر شراء</b>. المدد مشتقّة من مراجع اللوحة، والقاع هو موضع أكبر تركّز للمخاطر.</div>
         <div id="cash"></div>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+        <h3 style="font-size:13.5px">🧭 المسار الحرج — ما يسبق كل ما سبق</h3>
+        <div class="note" style="margin-bottom:8px">ليس خطة عمل بل <b>ترتيب تبعية</b>: كل خطوة تحجب ما بعدها. والحالة مأخوذة من اللوحة لا مقدَّرة — والفراغ يعني «غير مبلَّغ» لا «مستوفى» (٣٠).</div>
+        <div id="crit"></div>
       </div>
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
         <h3 style="font-size:13.5px">📌 سجلّ المراجع — أعمار الأرقام السوقية</h3>
@@ -2114,6 +2121,27 @@ function paintCash(){
     وزمن البيع غير مقدَّر. <b>مصنَّف مشتقّاً</b> — لا مرصوداً.</div>`;
 }
 
+/* المسار الحرج: رتّبته الجولة ٦٢ حين تبيّن أن بوابة الترشيح (٦١) نفسها
+   تقف خلف شرط أهلية مسجَّل منذ الجولة ٣٠ ولم يُعامَل بوصفه أول الطريق. */
+const CRIT = [
+  {n:"سجل تجاري يشمل التجارة الإلكترونية", w:"وزارة التجارة", r:"٣٠ · ٣١", why:"شراء الجملة لإعادة البيع نشاط تجاري — فالشرط من <b>النشاط</b> لا من المنصة"},
+  {n:"حساب بنكي تجاري مرتبط به", w:"شرطٌ داخل التوثيق", r:"٣٠", why:"وقناةُ النقد كلها: التحصيل (١٢) والردّ النقدي (٢٩)"},
+  {n:"توثيق المتجر على منصة الأعمال", w:"المركز السعودي للأعمال", r:"٣٠", why:"المعتمدة وحدها — لا «معروف»"},
+  {n:"حساب في قناة جملة محلية", w:"ساري · سوق الجملة من سلة", r:"٥٤ · ٦٢", why:"أول منفذ لدليل نشاط حي بتاريخ — وهو ما تعذّر بحثاً (٦١)"},
+  {n:"ترشيح يجتاز المعايير الثمانية", w:"الوكلاء ١–٣", r:"٦٠", why:"القائمة الحالية مستنفَدة لا معطَّلة"},
+  {n:"مواصفة عرض السعر — ٦ بنود", w:"الوكيل ٥", r:"٣٦–٤٧", why:"صنف · مادة · وسم · مساعدات · شرط تسليم · عملة — تُغلق عند العربون (٤٣)"},
+  {n:"اختبار إعلاني صغير", w:"الوكيل ٦", r:"١٧ · ٥٩", why:"تكلفة النقرة والطلب <b>يُقاسان لا يُبحثان</b> — أول ٥٠ تحويلاً"}
+];
+function paintCrit(){
+  const el = $("#crit"); if(!el) return;
+  el.innerHTML = `<ol class="critlist">${CRIT.map((c,i)=>
+    `<li><b>${c.n}</b> <span style="color:var(--mut)">— ${c.w}</span>
+      <span style="opacity:.65;font-size:11px">· جولة ${c.r}</span>
+      <div style="color:var(--mut);font-size:11.5px;margin-top:2px">${c.why}</div></li>`).join("")}</ol>
+    <div class="cashnote">الخطوات السبع كلها <b>غير مبلَّغة الحالة</b>. وأولاها ليست بحثاً ولا توريداً بل <b>ورقة</b> —
+    ومنذ الجولة ٣٠ وهي على اللوحة شرطاً، ولم تُقرأ <b>أول الطريق</b> إلا بعد أن أُغلقت بوابة الترشيح.</div>`;
+}
+
 /* ---- سجلّ المراجع ---- */
 function paintBench(){
   const rows = BENCH.map(b=>({...b, age:benchAgeMonths(b.on)}))
@@ -2270,7 +2298,7 @@ function render(){
   if(activeProduct()){ paintEcon(); paintVOC(); }
   else { $("#econ").innerHTML = `<div class="phead"><div><h3>🧮 بطاقة القرار</h3><div class="note">اختر منتجاً من البطاقات أو الجدول لعرض حسبة الجدوى</div></div></div>`;
          $("#voc").innerHTML = `<div style="color:var(--mut);font-size:12.5px">اختر منتجاً لعرض تصنيف تواصل عملائه.</div>`; $("#rule3").innerHTML=""; }
-  paintCash(); paintSeasons(); paintBench(); paintDossier();
+  paintCash(); paintCrit(); paintSeasons(); paintBench(); paintDossier();
   paintDecisions(); paintAgents();
 }
 
