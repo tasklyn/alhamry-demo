@@ -1,0 +1,5 @@
+#!/bin/sh
+# حارسُ الانجراف — يُمنَع الالتزامُ إذا كان الإنذارُ ناطقاً وكلُّ المضاف سهلاً.
+# يُتجاوَز بـ`git commit --no-verify` — والتجاوزُ يُذكَر في تقرير الجولة.
+[ -f tools/drift-check.mjs ] || exit 0
+node tools/drift-check.mjs || exit 1
