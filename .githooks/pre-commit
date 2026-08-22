@@ -1,5 +1,8 @@
 #!/bin/sh
-# حارسُ الانجراف — يُمنَع الالتزامُ إذا كان الإنذارُ ناطقاً وكلُّ المضاف سهلاً.
-# يُتجاوَز بـ`git commit --no-verify` — والتجاوزُ يُذكَر في تقرير الجولة.
-[ -f tools/drift-check.mjs ] || exit 0
-node tools/drift-check.mjs || exit 1
+# حارسانِ قبل الالتزام — أثرٌ يمنع، لا عَرْضٌ يُخبر.
+#   ١) حارسُ الانجراف: يمنع الالتزامَ إذا كان الإنذارُ ناطقاً وكلُّ المضاف سهلاً.
+#   ٢) حارسُ دعوى «قطّ»: يمنع دعوى «لم يُجرَّب قطّ» إذا كان في السجلّ ما يخالفها.
+# كلاهما يُتجاوَز بـ`git commit --no-verify` — والتجاوزُ يُذكَر في تقرير الجولة.
+[ -f tools/drift-check.mjs ] && { node tools/drift-check.mjs || exit 1; }
+[ -f tools/never-check.mjs ] && { node tools/never-check.mjs || exit 1; }
+exit 0
