@@ -76,12 +76,15 @@ const added = diff.split('\n')
   .filter(l => l.startsWith('+') && !l.startsWith('+++'))
   .map(l => l.slice(1));
 
+const ASKING = /؟/;   // سطرٌ فيه استفهام: الدعوى فيه سؤالٌ يُقاس لا خبرٌ يُثبَت
 const claims = added.filter(l => NEVER.test(l));
-const live = claims.filter(l => !QUOTED.test(l) && assertsNever(l));
-const skipped = claims.length - live.length;
+const quoted = claims.filter(l => QUOTED.test(l) || !assertsNever(l));
+const asking = claims.filter(l => !quoted.includes(l) && ASKING.test(l));
+const live = claims.filter(l => !quoted.includes(l) && !asking.includes(l));
+const skipped = quoted.length;
 
 console.error(`حارسُ «قطّ» — أسطرٌ مضافةٌ: ${added.length} · فيها دعوى «قطّ»: ${claims.length}` +
-  ` · مُستثناةٌ اقتباساً (⚠ أو «…»): ${skipped} · مفحوصة: ${live.length}`);
+  ` · مُستثناةٌ اقتباساً: ${skipped} · مُستثناةٌ استفهاماً: ${asking.length} · مفحوصة: ${live.length}`);
 
 if (live.length === 0) {
   console.error('  مرّ: لا دعوى «قطّ» تُفحَص في هذا الالتزام.');
