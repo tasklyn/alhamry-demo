@@ -48,14 +48,15 @@ const STOP = new Set(['code','dir','ltr','rtl','href','span','div','class','http
                       'true','false','null','const','max','src','basis',
                       // أسماءُ ملفّات المستودع وأدواتِه — ترد في كلّ سطرٍ يصف عملاً، فلا تدلّ على موضوع
                       'agents.html','research','tools','node','git','commit','drift','never',
-                      'drift-check.mjs','never-check.mjs','check.mjs','PROCEDURES.md','githooks']);
+                      'drift-check.mjs','never-check.mjs','check.mjs','check','PROCEDURES.md','githooks']);
 // رمزٌ ينتهي بامتدادِ ملفٍّ ليس موضوعَ دعوى بل موضعَ عمل
 const PATHY = /\.(mjs|html|md|js|json|tsv|sh)$/;
 const MAX_HITS = 200;
 
 const arg = process.argv[2];
-const base = arg || 'HEAD';
-const range = arg ? `${arg}..HEAD` : null;
+// «<BASE>» تعني <BASE>..HEAD · و«<A>..<B>» تُقرَأ كما هي، والأساسُ <A>
+const range = arg ? (arg.includes('..') ? arg : `${arg}..HEAD`) : null;
+const base = arg ? (arg.includes('..') ? arg.split('..')[0] : arg) : 'HEAD';
 
 function git(args) {
   return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
