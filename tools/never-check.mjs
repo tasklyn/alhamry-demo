@@ -16,6 +16,9 @@
 //   · السطرُ الحاملُ ⚠ أو «نُقض» أو «صُحّح» يُستثنى — لأنّه اقتباسُ تصحيحٍ لا دعوى.
 //     وهذا الاستثناءُ ثغرةٌ بذاته: تُمرَّر الدعوى الكاذبةُ بوسمِ ⚠. ويُذكَر ولا يُخفى.
 //   · المطابقةُ بالرمز لا بالمعنى — فما صيغ بلا رمزٍ مشترَك لا يُلتقَط.
+//   · وقيدُ الوقت (٣٨٧) يُستثنى به ما لاصقَه «اليوم» أو «في هذه الجولة» — وثغرتُه
+//     أن يُلصَق القيدُ بدعوى عن السجلّ فتُمرَّر. ويُذكَر ولا يُخفى.
+//     ولا يلتقط ما كان من الصنف نفسِه بلا لفظِ قيد («ولم تُجرَّب محاولةٌ ثانية») — فهو أضيقُ من الصنف.
 //   · يُتجاوَز بـ`git commit --no-verify` — والتجاوزُ يُذكَر في تقرير الجولة.
 //
 // الاستعمال:
@@ -77,14 +80,41 @@ const added = diff.split('\n')
   .map(l => l.slice(1));
 
 const ASKING = /؟/;   // سطرٌ فيه استفهام: الدعوى فيه سؤالٌ يُقاس لا خبرٌ يُثبَت
+
+// جولة ٣٨٧ — الصنفُ الثاني من عطب ٣٨٥: **وصفُ فعلِ هذه الجولة لا تاريخِ السجلّ**.
+//   «ولم يُجرَّب اليومَ» إخبارٌ عمّا لم أفعله، لا حكمٌ على ما في السجلّ — فلا يُفحَص.
+//   والقيدُ **ملاصقٌ** لا مجرَّدُ ورودٍ في السطر: «لم يُصوَّب إليه استعلامٌ قطّ، وصُوِّب
+//   اليومَ» دعوى حقيقيّةٌ فيها «اليوم» — ولا تُستثنى، لأنّ بين الدعوى والقيد فاصلاً.
+//   وتُشترَط الملاصقةُ لكلّ دعوى في السطر: دعوى واحدةٌ غيرُ مقيَّدةٍ تُبقي السطرَ مفحوصاً.
+// وقِيس أثرُه قبل تثبيته على ٣٥٦–٣٨٦: **يُسقِط ٣ أسطرٍ من ١٦، وكلُّها من الصنف الثاني،
+//   وصفرُ دعوى حقيقيّةٍ عن السجلّ**. ولو أسقط واحدةً لَما ثُبِّت (معيارُ ٣٨٦).
+const QUAL = /^[\s:،]{0,3}(اليومَ?|في هذه الجولة|هذه الجولة|في هذا الالتزام|هذا الالتزام|في الجولة)/;
+function neverSpans(line) {          // مواضعُ الدعوى خارجَ «…»
+  const out = []; let d = 0;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '«') { d++; continue; }
+    if (c === '»') { d = Math.max(0, d - 1); continue; }
+    if (d > 0) continue;
+    const m = line.slice(i).match(NEVER);
+    if (m && m.index === 0) { out.push({ i, len: m[0].length }); i += m[0].length - 1; }
+  }
+  return out;
+}
+function boundToNow(line) {
+  const ms = neverSpans(line);
+  return ms.length > 0 && ms.every(({ i, len }) => QUAL.test(line.slice(i + len, i + len + 30)));
+}
 const claims = added.filter(l => NEVER.test(l));
 const quoted = claims.filter(l => QUOTED.test(l) || !assertsNever(l));
 const asking = claims.filter(l => !quoted.includes(l) && ASKING.test(l));
-const live = claims.filter(l => !quoted.includes(l) && !asking.includes(l));
+const nowly = claims.filter(l => !quoted.includes(l) && !asking.includes(l) && boundToNow(l));
+const live  = claims.filter(l => !quoted.includes(l) && !asking.includes(l) && !nowly.includes(l));
 const skipped = quoted.length;
 
 console.error(`حارسُ «قطّ» — أسطرٌ مضافةٌ: ${added.length} · فيها دعوى «قطّ»: ${claims.length}` +
-  ` · مُستثناةٌ اقتباساً: ${skipped} · مُستثناةٌ استفهاماً: ${asking.length} · مفحوصة: ${live.length}`);
+  ` · مُستثناةٌ اقتباساً: ${skipped} · مُستثناةٌ استفهاماً: ${asking.length}` +
+  ` · مُستثناةٌ بقيدِ الوقت: ${nowly.length} · مفحوصة: ${live.length}`);
 
 if (live.length === 0) {
   console.error('  مرّ: لا دعوى «قطّ» تُفحَص في هذا الالتزام.');
