@@ -51,9 +51,21 @@ const MARK = /إعفاء\s*الانجراف\s*—\s*بإذن\s*معيار\s*([٠
 //   الذي بُني القيدُ الأوّلُ لمنعه. وفيها ٣٦٤ و٣٦٩ وقد **أمر معيارُهما باستعلامٍ خارجيّ**.
 // والمعيارُ في هذه التقارير بنيةٌ ثابتة: **آخرُ اقتباسٍ (`> …`) في الملفّ**.
 const BAN  = /لا\s*(?:تجر|تجري|يجر)?\s*استعلام/;
+// جولة ٣٩٧: كان يُقرأ **آخرُ سطرٍ** من الاقتباس، والمعيارُ يُكتَب **كتلةً** من أسطرٍ
+//   متتالية. فأُخفق إعفاءُ ٣٩٧ لأنّ النهيَ في السطر ما قبل الأخير. فصار يُقرأ
+//   **آخرُ كتلةٍ متّصلة** من أسطر الاقتباس. وقِيس أثرُه قبل التثبيت: لا يُعفي جولةً
+//   كان معيارُها يأمر بالاستعلام، ولا يُسقِط إعفاءً صحيحاً.
 function criterion(text) {
-  const q = [...text.matchAll(/^>[ \t]?(.*)$/gm)].map(m => m[1]);
-  return q.length ? q[q.length - 1] : '';
+  const lines = text.split('\n');
+  let end = -1;
+  for (let i = lines.length - 1; i >= 0; i--) if (/^>/.test(lines[i])) { end = i; break; }
+  if (end < 0) return '';
+  let start = end;
+  while (start > 0 && /^(>|\s*$)/.test(lines[start - 1])) {
+    if (/^\s*$/.test(lines[start - 1]) && !/^>/.test(lines[start - 2] || '')) break;
+    start--;
+  }
+  return lines.slice(start, end + 1).filter(l => /^>/.test(l)).map(l => l.replace(/^>[ \t]?/, '')).join(' ');
 }
 
 function reports(dir = RESEARCH) {
