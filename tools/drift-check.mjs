@@ -109,14 +109,25 @@ function exemptions(R) {
 }
 
 const sh = a => { try { return execFileSync('git', a, { encoding:'utf8', maxBuffer: 64*1024*1024 }); } catch { return ''; } };
-// التزامُ جولةٍ بعينها — من صدر رسالته «جولة NNN…»
-function commitOf(round) {
-  for (const line of sh(['log','--format=%H%x09%s']).split('\n')) {
-    const [h, subj=''] = line.split('\t');
+// التزاماتُ الجولات — من صدر رسائلها «جولة NNN…»، مقروءةً مرّةً واحدة.
+//   ⚠ جولة ٤٢٤: كُتبت أوّلاً دالّةٌ ثانيةٌ لهذا الغرض بنمطٍ أضيقَ (يشترط نقطتين ولا
+//   يُجرّد الحركات) — وهو بناءُ تنفيذٍ ثانٍ لشيءٍ قائم، وهو ما يُنهى عنه. فحُذفت
+//   الثانيةُ ووُسِّعت هذه لتردَّ الخريطةَ كلَّها، وبقي تنفيذٌ واحد.
+let _roundCommits = null;
+function roundCommits() {
+  if (_roundCommits) return _roundCommits;
+  const seen = new Set();
+  _roundCommits = [];
+  for (const line of sh(['log', '--format=%H%x09%s', '-600']).split('\n')) {
+    const [h, subj = ''] = line.split('\t');
     const m = bare(subj).match(/^جولة\s*([٠-٩0-9]+)/);
-    if (m && toNum(m[1]) === round) return h;
+    if (!m) continue;
+    const r = toNum(m[1]);
+    if (!Number.isFinite(r) || seen.has(r)) continue;   // أوّلُ ورودٍ هو الأحدث، ويُبقى عليه
+    seen.add(r);
+    _roundCommits.push({ round: r, hash: h });
   }
-  return null;
+  return _roundCommits;
 }
 
 // يقتطع `const NAME = [ ... ]` باحترام الاقتباس، ثمّ يُقيّمه.
@@ -151,12 +162,150 @@ function share(list, marks) {
   return { hard, total: list.length, pct: list.length ? Math.round(hard * 100 / list.length) : 0 };
 }
 
+
+// اقترانُ الدَّين بسداده (٤٢٤) — دالّةٌ صِرفٌ تُختبَر بلا سجلٍّ ولا git.
+//   EX:   [{round, ok, by}]           — الإعفاءاتُ المُعلَنة
+//   hard: [{k, after}]                — المداخلُ العسيرةُ والجولةُ التي أُضيف فيها كلٌّ
+//   ترجع: [{round, by, paidBy}]       — مرتَّبةً تصاعديّاً، وpaidBy مفتاحُ المدخل أو null
+// والقاعدةُ: أقدمُ دَينٍ يأخذ أقدمَ سدادٍ متاحٍ **أُضيف بعده** — ولا يُستهلَك مرّتين.
+function settle(EX, hard) {
+  const debts = EX.filter(e => e.ok).slice().sort((a, b) => a.round - b.round);
+  const pool  = hard.slice().sort((a, b) => a.after - b.after || String(a.k).localeCompare(String(b.k)));
+  const used  = new Set();
+  return debts.map(e => {
+    const h = pool.find(x => !used.has(x.k) && x.after > e.round);
+    if (h) used.add(h.k);
+    return { round: e.round, by: e.by, paidBy: h ? h.k : null, paidAt: h ? h.after : null };
+  });
+}
+
+// أصلُ كلِّ مدخلٍ عسيرٍ: أوّلُ جولةٍ ظهر فيها — مقيساً بحدود الإعفاءات وحدَها.
+//   ⚠ أوّلُ تنفيذٍ (٤٢٤) مشى على **كلّ** التزامات الجولات من أوّل إعفاءٍ فصاعداً، ولم
+//   يبذر المرئيَّ بما كان موجوداً **عند** ذلك الالتزام — فنسب ٢٩٣ مدخلاً إلى جولة ٣٨٤،
+//   والمقيسُ في ٤٢٣ خمسةٌ وسبعون. وكشفه التناقضُ لا المراجعة (نظيرُ ٤٠٣ و٤١٠ و٤١٦).
+//   ولم يكن يغيّر الحصيلة (المنسوبُ إلى ٣٨٤ لا يُسدِّد ٣٨٤ ولا ما بعدها) — **لكنّه خطأ،
+//   والخطأُ الذي لا يضرّ اليومَ يضرّ غداً**. فصُحّح، ومعه ضُيِّق المشيُ:
+//   لا يُحتاج إلّا إلى **ترتيب المدخل بالنسبة لجولات الإعفاء** — فيُمشى على التزاماتها
+//   وحدَها (ستَّ عشرةَ بدل أربعين)، وتُبذَر المجموعةُ بما كان عند أوّلها.
+function hardOrigins(nowBench, marks, exRounds, curRound) {
+  const marks_ = marks;
+  const bounds = [...new Set(exRounds)].sort((a, b) => a - b);
+  if (!bounds.length) return [];
+  const byRound = new Map(roundCommits().map(r => [r.round, r.hash]));
+  const at = r => {
+    const h = byRound.get(r); if (!h) return null;
+    try { return load(execFileSync('git', ['show', `${h}:${FILE}`], { encoding:'utf8', maxBuffer: 64*1024*1024 })); }
+    catch { return null; }
+  };
+  const seenK = new Set();
+  const base = at(bounds[0]);
+  if (base) base.BENCH.forEach(e => seenK.add(e.k));   // البذرُ: ما كان **عند** أوّل إعفاء لا يُنسَب إليه
+  const origins = [];
+  for (let i = 1; i < bounds.length; i++) {
+    const then = at(bounds[i]); if (!then) continue;
+    for (const e of then.BENCH) {
+      if (seenK.has(e.k)) continue;
+      seenK.add(e.k);
+      if (isHard(e, marks_)) origins.push({ k: e.k, after: bounds[i - 1] + 1 });
+    }
+  }
+  // ⚠ وعطبٌ ثالثٌ كُشف بالتشغيل: آخرُ حدٍّ هو **جولةُ اليوم**، ولا التزامَ لها بعد.
+  //   فسقط قارئُها، فوقع كلُّ ما أُضيف منذ الحدِّ الذي قبلَه في «ما بعد آخرِ إعفاء»
+  //   ونُسب إلى `آخرُ حدٍّ + ١` — فطبعت الأداةُ «إعفاءُ ٤٢٤ سُدِّد في ٤٢٥» بمدخلٍ من ٤٢٣.
+  //   وجولةٌ لم تأتِ لا تُسدِّد، والسدادُ لا يسبق الدَّين. فتُنسَب البقيّةُ **للجولة الجارية**:
+  //   فلا تُسدِّد دَينَ نفسِها (الشرطُ `after > round`)، وتُسدِّد ما قبلَها.
+  for (const e of nowBench) {
+    if (seenK.has(e.k)) continue;
+    seenK.add(e.k);
+    if (isHard(e, marks_)) origins.push({ k: e.k, after: curRound });
+  }
+  return origins;
+}
+
 // ── أنماطُ الفحص: --audit (رجعيّ) و--selftest (على مادّةٍ مُصطنَعة) ──
 const argv = process.argv.slice(2);
 
 function ledgerLines(EX) {
   return EX.map(e => `      · جولة ${e.round} — بإذن ${e.by}: ` +
     (e.ok ? `✔ مقبول (${e.why})` : `✗ مردود (${e.why})`));
+}
+
+// ── جولة ٤٢٤: اختبارُ اقتران الدَّين بسداده — مكتوبٌ قبل التعديل ──
+// العطبُ المقيسُ في ٤٢٣: الدَّينُ غيرُ مقرونٍ بإعفائه. `paidHard` يعدّ كلَّ مدخلٍ
+//   عسيرٍ أُضيف بعد الإعفاء، فمدخلٌ واحدٌ يُبرئ كلَّ إعفاءٍ سبقه. وقِيس بالعدد:
+//   ستَّ عشرةَ إعفاءةً كلُّها مُسدَّدة · وخمسون من خمسةٍ وسبعين مدخلاً تُسدِّد أكثرَ
+//   من إعفاءٍ واحد · وأكثرُها يُسدِّد الستَّ عشرةَ جميعاً.
+// والقرارُ كُتب بالنصّ قبل الشيفرة (معيارُ ٤٢٣):
+//   ١) المدخلُ العسيرُ يُحتسَب **لأقدمِ دَينٍ لم يُسدَّد** — لا لأحدثه؛ لأنّ احتسابَه
+//      لأحدثه يُبقي الأقدمَ معلَّقاً أبداً، وهو الذي بُني الدفترُ ليُظهره.
+//   ٢) **ولا يُسدِّد المدخلُ دَيناً نشأ بعد إضافته** — فالسدادُ لا يسبق الدَّين.
+//   ٣) وما لم يُمَسّ اليومَ ويُسمّى: **أالسدادُ المتأخّرُ (بعد أجل DEBT_WIN) يُبرئ؟**
+//      الحالُ أنّه يُبرئ. وهو سؤالٌ مؤجَّلٌ لا مقضيٌّ — تغييرٌ واحدٌ في الجولة.
+//
+// وتُقاس البنيةُ على مادّةٍ مُصطنَعةٍ لا على السجلّ، كيلا يكون الاختبارُ صدىً للحال:
+//   node tools/drift-check.mjs --ledgertest
+const LEDGER_CASES = [
+  { name: 'إعفاءان ومدخلٌ عسيرٌ واحد — واحدٌ يُسدَّد والآخرُ لا',
+    ex: [10, 20], hard: [{ k:'h1', after: 21 }],
+    want: { paid: [10], unpaid: [20] } },
+  { name: 'إعفاءان ومدخلان — كلاهما يُسدَّد',
+    ex: [10, 20], hard: [{ k:'h1', after: 11 }, { k:'h2', after: 21 }],
+    want: { paid: [10, 20], unpaid: [] } },
+  { name: 'السدادُ لا يسبق الدَّين — مدخلٌ أُضيف قبل الإعفاء لا يُبرئه',
+    ex: [30], hard: [{ k:'h1', after: 5 }],
+    want: { paid: [], unpaid: [30] } },
+  { name: 'الأقدمُ أوّلاً — المدخلُ الوحيدُ يذهب للأقدم',
+    ex: [10, 20, 30], hard: [{ k:'h1', after: 31 }],
+    want: { paid: [10], unpaid: [20, 30] } },
+  { name: 'سلسلةٌ متتاليةٌ بثلاثة إعفاءاتٍ ومدخلين — واحدٌ يبقى',
+    ex: [40, 41, 42], hard: [{ k:'h1', after: 41 }, { k:'h2', after: 43 }],
+    want: { paid: [40, 41], unpaid: [42] } },
+  { name: 'الجولةُ الجاريةُ لا تُسدِّد دَينَ نفسِها',
+    ex: [50], hard: [{ k:'h1', after: 50 }],
+    want: { paid: [], unpaid: [50] } },
+  { name: 'لا إعفاء — لا دَين',
+    ex: [], hard: [{ k:'h1', after: 1 }],
+    want: { paid: [], unpaid: [] } },
+];
+
+// عرضُ الدفتر على السجلّ الحقيقيّ — يُخبر ولا يمنع (٤٢٤).
+if (argv[0] === '--ledger') {
+  const src  = readFileSync(FILE, 'utf8');
+  const nowB = load(src);
+  const R2   = reports();
+  const EX2  = exemptions(R2);
+  const cur2 = R2.size ? Math.max(...R2.keys()) : 0;
+  const acc  = EX2.filter(e => e.ok);
+  const H    = hardOrigins(nowB.BENCH, nowB.EASY_MARK, acc.map(e => e.round), cur2);
+  const S    = settle(EX2, H);
+  console.log(`دفترُ الدَّين — إعفاءاتٌ مقبولة: ${acc.length} · مداخلُ عسيرةٌ صالحةٌ للسداد: ${H.length} · الجولةُ الجارية: ${cur2}`);
+  for (const d of S) {
+    console.log(`  ${d.paidBy ? '✔' : '✗'} إعفاءُ ${d.round} (بإذن ${d.by}) — ` +
+      (d.paidBy ? `سُدِّد بمدخلٍ أُضيف **بعد جولة ${d.paidAt - 1}** (حدٌّ أدنى لا تاريخٌ` +
+                  `؛ المشيُ بحدود الإعفاءات): «${String(d.paidBy).replace(/<[^>]+>/g,'').slice(0,40)}»`
+                : `**غيرُ مُسدَّد** — أجلُه ${d.round + DEBT_WIN}`));
+  }
+  const un = S.filter(d => !d.paidBy);
+  console.log(`  الحصيلة: مُسدَّدٌ ${S.length - un.length} · غيرُ مُسدَّدٍ ${un.length}` +
+    (un.length ? ` (${un.map(d => d.round).join(' · ')})` : ''));
+  process.exit(0);
+}
+
+if (argv[0] === '--ledgertest') {
+  console.log('اختبارُ اقتران الدَّين بسداده — على مادّةٍ مُصطنَعة، لا على السجلّ.');
+  let pass = 0;
+  for (const c of LEDGER_CASES) {
+    const got = settle(c.ex.map(r => ({ round: r, ok: true, by: r - 1 })), c.hard);
+    const paid = got.filter(x => x.paidBy).map(x => x.round);
+    const unpaid = got.filter(x => !x.paidBy).map(x => x.round);
+    const ok = String(paid) === String(c.want.paid) && String(unpaid) === String(c.want.unpaid);
+    if (ok) pass++;
+    console.log(`  ${ok ? '✔' : '✗'} ${c.name}`);
+    if (!ok) console.log(`      المنتظَر: مُسدَّد=[${c.want.paid}] غيرُ مُسدَّد=[${c.want.unpaid}]` +
+                         ` · والحاصل: مُسدَّد=[${paid}] غيرُ مُسدَّد=[${unpaid}]`);
+  }
+  console.log(`  الحصيلة: ${pass} من ${LEDGER_CASES.length}.`);
+  process.exit(pass === LEDGER_CASES.length ? 0 : 1);
 }
 
 if (argv[0] === '--audit') {
@@ -222,25 +371,22 @@ const mine = EX.find(e => e.round === cur);            // إعفاءُ هذه ا
 console.error(`  سجلُّ الإعفاءات المُعلَنة: ${EX.length}` +
   (EX.length ? ` (${EX.map(e => (e.ok ? '' : '؟') + e.round).join(' · ')})` : ' — لا إعفاءَ في السجلّ'));
 
-// دَينٌ حلَّ أجلُه: إعفاءٌ مقبولٌ مضى عليه DEBT_WIN جولاتٍ ولم يتبعه مدخلٌ عسير.
-const unpaid = [];
-for (const e of EX) {
-  if (!e.ok || e.round === cur) continue;
-  const h = commitOf(e.round);
-  if (!h) continue;
-  let paidHard = 0;
-  try {
-    const then = load(execFileSync('git', ['show', `${h}:${FILE}`], { encoding:'utf8', maxBuffer: 64*1024*1024 }));
-    const thenK = new Set(then.BENCH.map(x => x.k));
-    paidHard = now.BENCH.filter(x => !thenK.has(x.k) && isHard(x, now.EASY_MARK)).length;
-  } catch { continue; }
-  if (paidHard === 0 && cur > e.round + DEBT_WIN) unpaid.push({ ...e, due: e.round + DEBT_WIN });
-}
+// دَينٌ حلَّ أجلُه (٤٢٤: مقروناً بسداده وحدَه).
+//   كان: كلُّ مدخلٍ عسيرٍ أُضيف بعد الإعفاء يُبرئه — فمدخلٌ واحدٌ يُبرئ ما سبقه جميعاً،
+//   وقِيس في ٤٢٣ أنّ الدفترَ لا يتراكم البتّة (١٦ إعفاءةً كلُّها مُسدَّدة، وواحدٌ يُسدِّد ١٦).
+//   وصار: يُقرَن كلُّ دَينٍ بمدخلٍ واحدٍ **يُستهلَك**، والأقدمُ أوّلاً — بدالّة settle الصِرفة
+//   المُختبَرة على مادّةٍ مُصطنَعة (--ledgertest)، وتُعرَض على السجلّ بـ--ledger.
+//   وما لم يُمَسّ ويُسمّى: **السدادُ المتأخّرُ بعد الأجل يُبرئ كما كان** — سؤالٌ مؤجَّل.
+const settled = settle(EX, hardOrigins(now.BENCH, now.EASY_MARK,
+                                       EX.filter(e => e.ok).map(e => e.round), cur));
+const unpaid = settled
+  .filter(d => !d.paidBy && d.round !== cur && cur > d.round + DEBT_WIN)
+  .map(d => ({ ...d, due: d.round + DEBT_WIN }));
 
 if (unpaid.length) {
   console.error('');
   console.error('  ✗ مُنع: دَينُ إعفاءٍ حلَّ أجلُه ولم يُسدَّد — والإعفاءُ دَينٌ لا عفو.');
-  unpaid.forEach(e => console.error(`      · إعفاءُ جولة ${e.round} (بإذن ${e.by}) — أجلُه ${e.due}، والجاريةُ ${cur}: صفرُ مدخلٍ عسيرٍ بعده.`));
+  unpaid.forEach(e => console.error(`      · إعفاءُ جولة ${e.round} (بإذن ${e.by}) — أجلُه ${e.due}، والجاريةُ ${cur}: لا مدخلَ عسيرٌ غيرُ مستهلَكٍ أُضيف بعده.`));
   console.error('');
   console.error('  السدادُ مدخلٌ واحدٌ مصدرُه خارجُ هذا الملفّ — أو تجاوزٌ صريحٌ يُذكَر:');
   console.error('      git commit --no-verify');
