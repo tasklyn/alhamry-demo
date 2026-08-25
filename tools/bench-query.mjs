@@ -19,6 +19,7 @@
 import fs from 'fs';
 
 const FILE = process.env.BENCH_FILE || 'agents.html';
+const REPORTS = process.env.BENCH_REPORTS || 'research';
 
 // المُحلِّلُ نفسُه المستعمَل في drift-check.mjs — لا نسخةَ ثانيةً بسلوكٍ ثانٍ.
 function pluck(src, name) {
@@ -59,6 +60,23 @@ function everything() {
 const strip = s => String(s == null ? '' : s).replace(/<[^>]+>/g, '');
 const of = (e, f) => f === 'any' ? Object.values(e).map(strip).join(' ') : strip(e[f]);
 
+// جولة ٤٠٧: بعد جرد ٤٠٦ — كان «البحثُ في السجلّ» يعني agents.html وحدَه،
+// وresearch/ فيه ٤٠٧ ملفّاً و٤١٬٧١١ سطراً لا تراها أداة. وقِيس قبل التثبيت:
+// الدعاوى الثلاثُ الباطلةُ في ٤٠٥ كان البحثُ في research/ يمنعها ثلاثَها.
+//
+// وما لا تقرؤه هذه الأداةُ بعد التوسيع — يُكتَب هنا لا في التقرير:
+//   · تاريخَ git (رسائلَ الالتزامات، ونصوصَ الملفّات في نسخها السابقة)
+//   · شيفرةَ tools/ و.githooks/ أنفسِها
+//   · الأرتيفكتَ المنشورَ على claude.ai (نسخةٌ قد تسبق الشجرةَ أو تتأخّر عنها)
+//   · أيَّ شيءٍ خارج هذا المستودع
+// فمن ادّعى «فحصتُ السجلّ» بعد اليوم فقد فحص الشجرةَ الحاضرة، لا تاريخَها.
+function reports() {
+  let names;
+  try { names = fs.readdirSync(REPORTS).filter(f => f.endsWith('.md')); }
+  catch { return []; }
+  return names.sort().map(f => ({ file: f, text: fs.readFileSync(REPORTS + '/' + f, 'utf8') }));
+}
+
 const [cmd, a, b] = process.argv.slice(2);
 
 if (cmd === 'stats') {
@@ -88,7 +106,33 @@ if (cmd === 'stats') {
   Object.entries(byT).forEach(([t,c]) => console.log('   ', t.padEnd(16), c));
   hit.slice(0, 40).forEach(e => console.log('  ·', (e.__table+'#'+e.__i).padEnd(20),
       strip(e.k || e.name || e.id || e.v).slice(0, 68)));
+} else if (cmd === 'docs') {
+  // بحثٌ في تقارير الجولات — ما لا تراه الجداول.
+  const re = new RegExp(a, 'u');
+  const hits = reports().filter(r => re.test(r.text));
+  console.log(`${hits.length} / ${reports().length} ملفّاً  (research/ · النمط: ${a})`);
+  hits.slice(0, 30).forEach(r => {
+    const line = r.text.split('\n').find(l => re.test(l)) || '';
+    console.log('  ·', r.file.padEnd(30), line.replace(/<[^>]+>/g, '').trim().slice(0, 74));
+  });
+  if (hits.length > 30) console.log(`  … و${hits.length - 30} ملفّاً أُخرى لم تُعرَض`);
+} else if (cmd === 'seen') {
+  // «أرُصد هذا من قبل؟» — الجداولُ والتقاريرُ معاً في نداءٍ واحد.
+  const re = new RegExp(a, 'u');
+  const rows = everything();
+  const inTables = rows.filter(e => re.test(Object.entries(e)
+      .filter(([k]) => !k.startsWith('__')).map(([,v]) => strip(v)).join(' ')));
+  const inDocs = reports().filter(r => re.test(r.text));
+  console.log(`النمط: ${a}`);
+  console.log(`  في جداول اللوحة : ${inTables.length} / ${rows.length} صفّاً`);
+  console.log(`  في تقارير الجولات: ${inDocs.length} / ${reports().length} ملفّاً`);
+  if (inDocs.length) console.log('  أقدمُ تقريرٍ يذكره:', inDocs[0].file);
+  const byT = {}; inTables.forEach(e => (byT[e.__table] = (byT[e.__table]||0)+1));
+  Object.entries(byT).forEach(([t,c]) => console.log('     ', t.padEnd(16), c));
+  console.log(inTables.length || inDocs.length
+    ? '  ⟵ مرصودٌ من قبلُ: لا تُكتَب دعوى اكتشاف.'
+    : '  ⟵ لا أثرَ له في الشجرة الحاضرة (ولا يُقال «قطّ»: تاريخُ git خارج هذه الأداة).');
 } else {
-  console.error('الاستعمال: count|list <حقل> <نمط> · all <نمط> · field <اسم> · stats');
+  console.error('الاستعمال: count|list <حقل> <نمط> · all <نمط> · docs <نمط> · seen <نمط> · field <اسم> · stats');
   process.exit(2);
 }
