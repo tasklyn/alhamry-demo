@@ -40,6 +40,22 @@ const src = fs.readFileSync(FILE, 'utf8');
 const BENCH = pluck(src, 'BENCH');
 const GATES = pluck(src, 'GATES_ACTIVE');
 
+// جولة ٤٠٥: بُنيت الأداةُ أمسِ على جدولين فقط (BENCH و GATES_ACTIVE)، فادّعيتُ
+// في ٤٠٤ أنّ مضيفاً «لم يَرِد في السجلّ ولا مرّة» — وهو واردٌ في SEASONS_DEMO
+// منذ جولة ٢٥١.
+// فالبحثُ في جدولين ليس بحثاً في السجلّ. وهذه كلُّ جداول اللوحة العلويّة.
+const ALL_TABLES = (src.match(/^const ([A-Z_]+) = \[/gm) || [])
+  .map(m => m.replace(/^const /, '').replace(/ = \[$/, ''));
+function everything() {
+  const out = [];
+  for (const t of ALL_TABLES) {
+    let rows; try { rows = pluck(src, t); } catch { continue; }
+    if (!Array.isArray(rows)) continue;
+    rows.forEach((r, i) => out.push({ __table: t, __i: i + 1, ...(typeof r === 'object' && r ? r : { v: r }) }));
+  }
+  return out;
+}
+
 const strip = s => String(s == null ? '' : s).replace(/<[^>]+>/g, '');
 const of = (e, f) => f === 'any' ? Object.values(e).map(strip).join(' ') : strip(e[f]);
 
@@ -61,7 +77,18 @@ if (cmd === 'stats') {
   console.log(`${hit.length} / ${BENCH.length}  (الحقل: ${a} · النمط: ${b})`);
   if (cmd === 'list') hit.forEach((e,i) =>
     console.log(String(i+1).padStart(4), (e.on||'—').padEnd(11), strip(e.k).slice(0,72)));
+} else if (cmd === 'all') {
+  // بحثٌ في كلّ جداول اللوحة لا في BENCH وحدَه — قاعدةُ منع التكرار تقتضيه.
+  const re = new RegExp(a, 'u');
+  const rows = everything();
+  const hit = rows.filter(e => re.test(Object.entries(e)
+      .filter(([k]) => !k.startsWith('__')).map(([,v]) => strip(v)).join(' ')));
+  console.log(`${hit.length} / ${rows.length}  (كلُّ الجداول · النمط: ${a})`);
+  const byT = {}; hit.forEach(e => (byT[e.__table] = (byT[e.__table]||0)+1));
+  Object.entries(byT).forEach(([t,c]) => console.log('   ', t.padEnd(16), c));
+  hit.slice(0, 40).forEach(e => console.log('  ·', (e.__table+'#'+e.__i).padEnd(20),
+      strip(e.k || e.name || e.id || e.v).slice(0, 68)));
 } else {
-  console.error('الاستعمال: count|list <حقل> <نمط> · field <اسم> · stats');
+  console.error('الاستعمال: count|list <حقل> <نمط> · all <نمط> · field <اسم> · stats');
   process.exit(2);
 }
